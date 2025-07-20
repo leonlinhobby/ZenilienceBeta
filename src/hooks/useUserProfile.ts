@@ -32,6 +32,9 @@ export const useUserProfile = () => {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        if (error.code === 'PGRST116') {
+          setProfile(null);
+        }
         return;
       }
 
@@ -79,6 +82,8 @@ export const useUserProfile = () => {
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching progress:', error);
         return;
+      } else if (error && error.code === 'PGRST116') {
+        setProgress(null);
       }
 
       setProgress(data);

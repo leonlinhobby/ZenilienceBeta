@@ -1,251 +1,215 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Brain, Heart, Zap, Moon, Target, Calendar } from 'lucide-react';
-import { UserProfile } from '../../types/user';
-import { UserStreaks } from '../../types/dashboard';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
+import { TrendingUp, Brain, Heart, Moon, Target, Zap } from 'lucide-react';
 
-interface AnalyticsProps {
-  profile: UserProfile;
-  streaks: UserStreaks | null;
+interface HealthMetrics {
+  stress_level: number;
+  mood_score: number;
+  sleep_quality: number;
+  focus_level: number;
+  anxiety_level: number;
+  energy_level: number;
 }
 
-const Analytics: React.FC<AnalyticsProps> = ({ profile, streaks }) => {
-  const [selectedMetric, setSelectedMetric] = useState('overview');
+const Analytics: React.FC = () => {
+  const { user } = useAuth();
+  const [metrics, setMetrics] = useState<HealthMetrics | null>(null);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const metrics = [
-    {
-      id: 'stress',
-      icon: <Brain className="w-6 h-6" />,
-      label: 'Stress Level',
-      value: Math.floor(Math.random() * 4) + 3, // 3-6 (lower is better)
-      maxValue: 10,
-      color: 'from-red-500 to-red-600',
-      bgColor: 'bg-red-50',
-      textColor: 'text-red-600'
-    },
-    {
-      id: 'mood',
-      icon: <Heart className="w-6 h-6" />,
-      label: 'Mood Score',
-      value: Math.floor(Math.random() * 3) + 7, // 7-9 (higher is better)
-      maxValue: 10,
-      color: 'from-green-500 to-green-600',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600'
-    },
-    {
-      id: 'energy',
-      icon: <Zap className="w-6 h-6" />,
-      label: 'Energy Level',
-      value: Math.floor(Math.random() * 4) + 6, // 6-9
-      maxValue: 10,
-      color: 'from-yellow-500 to-yellow-600',
-      bgColor: 'bg-yellow-50',
-      textColor: 'text-yellow-600'
-    },
-    {
-      id: 'sleep',
-      icon: <Moon className="w-6 h-6" />,
-      label: 'Sleep Quality',
-      value: Math.floor(Math.random() * 3) + 6, // 6-8
-      maxValue: 10,
-      color: 'from-blue-500 to-blue-600',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-600'
-    },
-    {
-      id: 'focus',
-      icon: <Target className="w-6 h-6" />,
-      label: 'Focus Level',
-      value: Math.floor(Math.random() * 4) + 5, // 5-8
-      maxValue: 10,
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600'
+  useEffect(() => {
+    if (user) {
+      fetchMetrics();
+      fetchWeeklyData();
     }
-  ];
+  }, [user]);
 
-  const weeklyData = Array.from({ length: 7 }, (_, i) => ({
-    day: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'][i],
-    sessions: Math.floor(Math.random() * 3) + (i < 5 ? 1 : 0), // More sessions on weekdays
-    mood: Math.floor(Math.random() * 3) + 6
-  }));
+  const fetchMetrics = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_health_metrics')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-  const getStatusText = (metricId: string, value: number) => {
-    switch (metricId) {
-      case 'stress':
-        return value <= 4 ? 'Niedrig' : value <= 7 ? 'Mittel' : 'Hoch';
-      case 'mood':
-        return value >= 8 ? 'Excellent' : value >= 6 ? 'Gut' : 'Niedrig';
-      case 'energy':
-        return value >= 8 ? 'Hoch' : value >= 6 ? 'Mittel' : 'Niedrig';
-      case 'sleep':
-        return value >= 8 ? 'Excellent' : value >= 6 ? 'Gut' : 'Schlecht';
-      case 'focus':
-        return value >= 8 ? 'Scharf' : value >= 6 ? 'Gut' : 'Niedrig';
-      default:
-        return 'Normal';
+      if (error && error.code !== 'PGRST116') throw error;
+      setMetrics(data);
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const fetchWeeklyData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_health_metrics')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(7);
+
+      if (error) throw error;
+      setWeeklyData(data || []);
+    } catch (error) {
+      console.error('Error fetching weekly data:', error);
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return 'text-green-600 bg-green-100';
+    if (score >= 6) return 'text-yellow-600 bg-yellow-100';
+    if (score >= 4) return 'text-orange-600 bg-orange-100';
+    return 'text-red-600 bg-red-100';
+  };
+
+  const getScoreText = (score: number) => {
+    if (score >= 8) return 'Ausgezeichnet';
+    if (score >= 6) return 'Gut';
+    if (score >= 4) return 'Okay';
+    return 'Verbesserungsbedarf';
+  };
+
+  const MetricCard = ({ icon: Icon, title, value, description, color }: any) => (
+    <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-3 rounded-full ${color}`}>
+          <Icon size={24} className="text-white" />
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-gray-800">{value || 'N/A'}</div>
+          <div className="text-sm text-gray-500">von 10</div>
+        </div>
+      </div>
+      <h3 className="font-semibold text-gray-800 mb-1">{title}</h3>
+      <p className="text-sm text-gray-600">{description}</p>
+      {value && (
+        <div className="mt-3">
+          <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(value)}`}>
+            {getScoreText(value)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-stone-100 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 pb-24">
       {/* Header */}
-      <div className="text-center py-8 px-4">
-        <div className="flex items-center justify-center mb-4">
-          <TrendingUp className="w-8 h-8 text-stone-600 mr-2" />
-          <h1 className="text-3xl font-bold text-stone-800">Analytics</h1>
-        </div>
-        <p className="text-stone-600 text-lg">
-          Dein Wellness-Fortschritt im Überblick
-        </p>
+      <div className="text-center pt-8 pb-6">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">📊 Analytics</h1>
+        <p className="text-gray-600">Dein Wohlbefinden im Überblick</p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="px-4 mb-8">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-stone-200">
-            <div className="flex items-center justify-between mb-2">
-              <Calendar className="w-6 h-6 text-stone-600" />
-              <span className="text-2xl font-bold text-stone-800">
-                {streaks?.current_streak || 0}
-              </span>
-            </div>
-            <p className="text-stone-600 text-sm">Tägliche Serie</p>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-stone-200">
-            <div className="flex items-center justify-between mb-2">
-              <Target className="w-6 h-6 text-stone-600" />
-              <span className="text-2xl font-bold text-stone-800">
-                {streaks?.total_lessons_completed || 0}
-              </span>
-            </div>
-            <p className="text-stone-600 text-sm">Lektionen</p>
-          </div>
+      {/* Current Metrics */}
+      <div className="mx-4 mb-8">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Aktuelle Werte</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <MetricCard
+            icon={Brain}
+            title="Stress Level"
+            value={metrics?.stress_level}
+            description="Wie gestresst fühlst du dich?"
+            color="bg-gradient-to-r from-red-500 to-pink-500"
+          />
+          <MetricCard
+            icon={Heart}
+            title="Stimmung"
+            value={metrics?.mood_score}
+            description="Deine allgemeine Stimmung"
+            color="bg-gradient-to-r from-green-500 to-emerald-500"
+          />
+          <MetricCard
+            icon={Moon}
+            title="Schlafqualität"
+            value={metrics?.sleep_quality}
+            description="Wie gut hast du geschlafen?"
+            color="bg-gradient-to-r from-indigo-500 to-purple-500"
+          />
+          <MetricCard
+            icon={Target}
+            title="Fokus"
+            value={metrics?.focus_level}
+            description="Deine Konzentrationsfähigkeit"
+            color="bg-gradient-to-r from-blue-500 to-cyan-500"
+          />
+          <MetricCard
+            icon={Brain}
+            title="Angst Level"
+            value={metrics?.anxiety_level}
+            description="Wie ängstlich fühlst du dich?"
+            color="bg-gradient-to-r from-orange-500 to-red-500"
+          />
+          <MetricCard
+            icon={Zap}
+            title="Energie"
+            value={metrics?.energy_level}
+            description="Dein Energielevel heute"
+            color="bg-gradient-to-r from-yellow-500 to-orange-500"
+          />
         </div>
       </div>
 
-      {/* Health Metrics */}
-      <div className="px-4 mb-8">
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-stone-200">
-          <h3 className="text-xl font-bold text-stone-800 mb-6">Gesundheitsmetriken</h3>
-          
-          <div className="grid grid-cols-1 gap-4">
-            {metrics.map((metric) => (
-              <div
-                key={metric.id}
-                className={`${metric.bgColor} rounded-2xl p-4 transition-all duration-300 hover:shadow-md`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center">
-                    <div className={`${metric.textColor} mr-3`}>
-                      {metric.icon}
+      {/* Weekly Trend */}
+      {weeklyData.length > 0 && (
+        <div className="mx-4 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">7-Tage Trend</h2>
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="space-y-4">
+              {weeklyData.slice(0, 7).map((day, index) => (
+                <div key={index} className="flex items-center justify-between py-2">
+                  <div className="text-sm text-gray-600">
+                    {new Date(day.created_at).toLocaleDateString('de-DE', { 
+                      weekday: 'short', 
+                      day: 'numeric', 
+                      month: 'short' 
+                    })}
+                  </div>
+                  <div className="flex space-x-2">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs text-gray-500">Stimmung:</span>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${getScoreColor(day.mood_score)}`}>
+                        {day.mood_score}
+                      </div>
                     </div>
-                    <span className="font-semibold text-stone-800">{metric.label}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-stone-800">
-                      {metric.value}/{metric.maxValue}
-                    </div>
-                    <div className={`text-xs ${metric.textColor} font-medium`}>
-                      {getStatusText(metric.id, metric.value)}
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs text-gray-500">Stress:</span>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${getScoreColor(11 - day.stress_level)}`}>
+                        {day.stress_level}
+                      </div>
                     </div>
                   </div>
                 </div>
-                
-                <div className="bg-white/50 rounded-full h-2">
-                  <div
-                    className={`bg-gradient-to-r ${metric.color} h-2 rounded-full transition-all duration-500`}
-                    style={{ width: `${(metric.value / metric.maxValue) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Weekly Progress */}
-      <div className="px-4 mb-8">
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-stone-200">
-          <h3 className="text-xl font-bold text-stone-800 mb-6">Wöchentlicher Fortschritt</h3>
-          
-          <div className="space-y-4">
-            {weeklyData.map((day, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="text-sm font-medium text-stone-600 w-8">
-                    {day.day}
-                  </span>
-                  <div className="flex space-x-1 ml-4">
-                    {Array.from({ length: day.sessions }, (_, i) => (
-                      <div
-                        key={i}
-                        className="w-4 h-4 bg-green-500 rounded-full"
-                      />
-                    ))}
-                    {Array.from({ length: 3 - day.sessions }, (_, i) => (
-                      <div
-                        key={i}
-                        className="w-4 h-4 bg-stone-200 rounded-full"
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <span className="text-sm text-stone-600 mr-2">Stimmung:</span>
-                  <div className="flex space-x-1">
-                    {Array.from({ length: day.mood }, (_, i) => (
-                      <Heart
-                        key={i}
-                        className="w-3 h-3 text-red-500 fill-current"
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* No Data State */}
+      {!metrics && (
+        <div className="mx-4">
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 text-center">
+            <div className="text-6xl mb-4">📈</div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Noch keine Daten</h3>
+            <p className="text-gray-600 mb-4">
+              Schließe deine erste Lektion ab, um deine Gesundheitswerte zu tracken.
+            </p>
           </div>
         </div>
-      </div>
-
-      {/* Insights */}
-      <div className="px-4 mb-8">
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-stone-200">
-          <h3 className="text-xl font-bold text-stone-800 mb-4">Einblicke</h3>
-          
-          <div className="space-y-3">
-            <div className="bg-blue-50 rounded-xl p-4">
-              <div className="flex items-center mb-2">
-                <TrendingUp className="w-5 h-5 text-blue-600 mr-2" />
-                <span className="font-semibold text-blue-800">Trend</span>
-              </div>
-              <p className="text-blue-700 text-sm">
-                Deine Stimmung hat sich diese Woche um 15% verbessert!
-              </p>
-            </div>
-            
-            <div className="bg-green-50 rounded-xl p-4">
-              <div className="flex items-center mb-2">
-                <Target className="w-5 h-5 text-green-600 mr-2" />
-                <span className="font-semibold text-green-800">Erfolg</span>
-              </div>
-              <p className="text-green-700 text-sm">
-                Du hast deine wöchentliche Zielsetzung erreicht!
-              </p>
-            </div>
-            
-            <div className="bg-yellow-50 rounded-xl p-4">
-              <div className="flex items-center mb-2">
-                <Brain className="w-5 h-5 text-yellow-600 mr-2" />
-                <span className="font-semibold text-yellow-800">Empfehlung</span>
-              </div>
-              <p className="text-yellow-700 text-sm">
-                Versuche mehr Atemübungen für bessere Stressreduzierung.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

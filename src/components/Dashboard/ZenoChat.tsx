@@ -1,60 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  MessageSquare, 
-  Plus, 
-  Send, 
-  Settings, 
-  X, 
-  User, 
-  Bot, 
-  Loader2,
-  RotateCcw,
-  Lock
-} from 'lucide-react';
-import { UserProfile } from '../../types/user';
-import { UserSettings, ChatSession, ChatMessage } from '../../types/dashboard';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
 import { sendMessageToDeepSeek } from '../ChatBot/api';
+import { Send, Plus, Settings, MessageCircle } from 'lucide-react';
 
-interface ZenoChatProps {
-  profile: UserProfile;
-  settings: UserSettings | null;
-  chatSessions: ChatSession[];
-  onCreateSession: (title: string) => Promise<ChatSession | null>;
-  onAddMessage: (sessionId: string, content: string, role: 'user' | 'assistant') => Promise<void>;
-  onGetMessages: (sessionId: string) => Promise<ChatMessage[]>;
-  onUpdateSettings: (updates: Partial<UserSettings>) => Promise<void>;
+interface ChatMessage {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant';
+  created_at: string;
 }
 
-const ZenoChat: React.FC<ZenoChatProps> = ({
-  profile,
-  settings,
-  chatSessions,
-  onCreateSession,
-  onAddMessage,
-  onGetMessages,
-  onUpdateSettings
-}) => {
-  const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
+interface ChatSession {
+  id: string;
+  title: string;
+  last_message_at: string;
+  message_count: number;
+}
+
+const ZenoChat: React.FC = () => {
+  const { user } = useAuth();
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [dailyMessageCount, setDailyMessageCount] = useState(0);
+  const [personality, setPersonality] = useState<'friendly' | 'professional'>('friendly');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const maxDailyMessages = profile.subscription_type === 'zenith' ? 999 : 5;
+  useEffect(() => {
+    if (user) {
+      fetchSessions();
+      fetchUserSettings();
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (chatSessions.length > 0 && !activeSession) {
-      setActiveSession(chatSessions[0]);
+    if (currentSession) {
+      fetchMessages();
     }
-  }, [chatSessions, activeSession]);
-
-  useEffect(() => {
-    if (activeSession) {
-      loadMessages();
-    }
-  }, [activeSession]);
+  }, [currentSession]);
 
   useEffect(() => {
     scrollToBottom();
@@ -64,363 +50,343 @@ const ZenoChat: React.FC<ZenoChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const loadMessages = async () => {
-    if (!activeSession) return;
-    
-    const sessionMessages = await onGetMessages(activeSession.id);
-    setMessages(sessionMessages);
-    
-    // Count today's messages
-    const today = new Date().toDateString();
-    const todayMessages = sessionMessages.filter(msg => 
-      msg.role === 'user' && 
-      new Date(msg.created_at).toDateString() === today
-    );
-    setDailyMessageCount(todayMessages.length);
+  const fetchUserSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from('user_settings')
+        .select('chat_personality')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (data) {
+        setPersonality(data.chat_personality);
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
   };
 
-  const handleNewChat = async () => {
-    const newSession = await onCreateSession('Neuer Chat');
-    if (newSession) {
-      setActiveSession(newSession);
+  const fetchSessions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('last_message_at', { ascending: false });
+
+      if (error) throw error;
+      setSessions(data || []);
+      
+      if (data && data.length > 0 && !currentSession) {
+        setCurrentSession(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    }
+  };
+
+  const fetchMessages = async () => {
+    if (!currentSession) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', currentSession.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const createNewSession = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .insert({
+          user_id: user?.id,
+          title: 'Neuer Chat'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setSessions(prev => [data, ...prev]);
+      setCurrentSession(data);
       setMessages([]);
+    } catch (error) {
+      console.error('Error creating session:', error);
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading || !activeSession) return;
-    
-    if (dailyMessageCount >= maxDailyMessages) {
-      alert('Tageslimit für Nachrichten erreicht. Upgrade zu Zenith für unbegrenzte Chats.');
-      return;
+  const updatePersonality = async (newPersonality: 'friendly' | 'professional') => {
+    try {
+      await supabase
+        .from('user_settings')
+        .update({ chat_personality: newPersonality })
+        .eq('user_id', user?.id);
+
+      setPersonality(newPersonality);
+    } catch (error) {
+      console.error('Error updating personality:', error);
     }
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || !currentSession || isLoading) return;
 
     const userMessage = inputMessage.trim();
     setInputMessage('');
     setIsLoading(true);
 
-    // Add user message
-    const userMsgObj: ChatMessage = {
-      id: Date.now().toString(),
-      session_id: activeSession.id,
-      user_id: profile.id,
-      content: userMessage,
-      role: 'user',
-      created_at: new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, userMsgObj]);
-    await onAddMessage(activeSession.id, userMessage, 'user');
-
     try {
+      // Add user message to UI
+      const newUserMessage = {
+        id: Date.now().toString(),
+        content: userMessage,
+        role: 'user' as const,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, newUserMessage]);
+
+      // Save user message to database
+      await supabase
+        .from('chat_messages')
+        .insert({
+          session_id: currentSession.id,
+          user_id: user?.id,
+          content: userMessage,
+          role: 'user'
+        });
+
       // Get AI response
-      const systemPrompt = `Du bist Zeno, der persönliche KI-Wellness-Begleiter für Zenilience. Du bist ${
-        settings?.chat_personality === 'professional' ? 'professionell und sachlich' : 'freundlich und unterstützend'
-      }.
-
-Über den Nutzer:
-- Name: ${profile.full_name || 'Unbekannt'}
-- Alter: ${profile.age || 'Unbekannt'}
-- Beruf: ${profile.occupation || 'Unbekannt'}
-- Interessen: ${profile.interests?.join(', ') || 'Unbekannt'}
-
-Wichtige Richtlinien:
-- Antworte IMMER auf Deutsch
-- Halte Antworten kurz und prägnant (1-2 Sätze)
-- Verwende keine Formatierungen wie **fett** oder *kursiv*
-- Maximal 1-2 Emojis pro Nachricht
-- Konzentriere dich auf mentale Gesundheit und Wohlbefinden
-- Gib praktische, umsetzbare Ratschläge
-- Sei empathisch und verständnisvoll
-
-Du hilfst bei:
-- Stress-Management
-- Meditation und Achtsamkeit
-- CBT-Techniken
-- Schlafhygiene
-- Emotionale Unterstützung
-- Motivation und Zielsetzung`;
+      const systemPrompt = personality === 'friendly' 
+        ? 'Du bist Zeno, ein freundlicher und einfühlsamer Begleiter für mentale Gesundheit. Antworte kurz (1-2 Sätze), warm und unterstützend. Verwende keine Formatierung wie **fett** oder _kursiv_.'
+        : 'Du bist Zeno, ein professioneller Psychologe und Therapeut. Antworte kurz (1-2 Sätze), sachlich und hilfreich. Verwende keine Formatierung wie **fett** oder _kursiv_.';
 
       const response = await sendMessageToDeepSeek(
         userMessage,
-        messages,
+        messages.map(m => ({ type: m.role, content: m.content })),
         {
           temperature: 0.7,
           model: 'deepseek/deepseek-r1-0528',
-          maxTokens: 300,
+          maxTokens: 150,
           systemPrompt
         }
       );
 
-      const aiMessage = response.choices[0].message.content;
-      
-      // Add AI response
-      const aiMsgObj: ChatMessage = {
+      const aiResponse = response.choices[0].message.content;
+
+      // Add AI response to UI
+      const newAiMessage = {
         id: (Date.now() + 1).toString(),
-        session_id: activeSession.id,
-        user_id: profile.id,
-        content: aiMessage,
-        role: 'assistant',
+        content: aiResponse,
+        role: 'assistant' as const,
         created_at: new Date().toISOString()
       };
+      setMessages(prev => [...prev, newAiMessage]);
 
-      setMessages(prev => [...prev, aiMsgObj]);
-      await onAddMessage(activeSession.id, aiMessage, 'assistant');
-      
-      setDailyMessageCount(prev => prev + 1);
+      // Save AI message to database
+      await supabase
+        .from('chat_messages')
+        .insert({
+          session_id: currentSession.id,
+          user_id: user?.id,
+          content: aiResponse,
+          role: 'assistant'
+        });
+
+      // Update session
+      await supabase
+        .from('chat_sessions')
+        .update({
+          last_message_at: new Date().toISOString(),
+          message_count: messages.length + 2,
+          title: messages.length === 0 ? userMessage.slice(0, 30) + '...' : currentSession.title
+        })
+        .eq('id', currentSession.id);
+
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMsgObj: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        session_id: activeSession.id,
-        user_id: profile.id,
-        content: 'Entschuldigung, ich konnte nicht antworten. Bitte versuche es später noch einmal.',
-        role: 'assistant',
-        created_at: new Date().toISOString()
-      };
-      setMessages(prev => [...prev, errorMsgObj]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const canSendMessage = dailyMessageCount < maxDailyMessages;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-stone-100 pb-24">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-stone-200 px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <img 
-              src="/zenilience_z_logo_2-removebg-preview.png" 
-              alt="Zeno" 
-              className="w-10 h-10 rounded-full bg-stone-100 p-2 mr-3"
-            />
-            <div>
-              <h1 className="text-xl font-bold text-stone-800">Zeno Chat</h1>
-              <p className="text-sm text-stone-600">
-                Dein persönlicher Wellness-Begleiter
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 pb-24 flex">
+      {/* Sidebar */}
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-gray-800">Zeno Chat</h1>
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="p-2 text-stone-600 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <Settings className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleNewChat}
-              className="p-2 text-stone-600 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Usage Limit */}
-      {profile.subscription_type === 'explorer' && (
-        <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center text-yellow-800">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              <span className="text-sm">
-                {dailyMessageCount}/{maxDailyMessages} Nachrichten heute
-              </span>
-            </div>
-            {!canSendMessage && (
-              <div className="flex items-center text-yellow-800">
-                <Lock className="w-4 h-4 mr-1" />
-                <span className="text-sm">Limit erreicht</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Settings Panel */}
-      {showSettings && (
-        <div className="px-4 py-4 bg-white/80 border-b border-stone-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-stone-800">Chat-Einstellungen</h3>
-            <button
-              onClick={() => setShowSettings(false)}
-              className="text-stone-400 hover:text-stone-600"
-            >
-              <X className="w-5 h-5" />
+              <Settings size={20} />
             </button>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
-              Chat-Persönlichkeit
-            </label>
-            <div className="flex space-x-3">
+          <button
+            onClick={createNewSession}
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg py-2 px-4 flex items-center justify-center space-x-2 hover:shadow-lg transition-all duration-300"
+          >
+            <Plus size={20} />
+            <span>Neuer Chat</span>
+          </button>
+        </div>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <h3 className="font-semibold text-gray-800 mb-3">Chat-Persönlichkeit</h3>
+            <div className="space-y-2">
               <button
-                onClick={() => onUpdateSettings({ chat_personality: 'friendly' })}
-                className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                  settings?.chat_personality === 'friendly'
-                    ? 'bg-stone-600 text-white'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                onClick={() => updatePersonality('friendly')}
+                className={`w-full text-left p-2 rounded-lg transition-colors ${
+                  personality === 'friendly' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
                 }`}
               >
-                Freundlich
+                Freundschaftlich
               </button>
               <button
-                onClick={() => onUpdateSettings({ chat_personality: 'professional' })}
-                className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                  settings?.chat_personality === 'professional'
-                    ? 'bg-stone-600 text-white'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                onClick={() => updatePersonality('professional')}
+                className={`w-full text-left p-2 rounded-lg transition-colors ${
+                  personality === 'professional' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
                 }`}
               >
                 Professionell
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Chat Area */}
-      <div className="flex-1 flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white/80 backdrop-blur-sm border-r border-stone-200 hidden sm:block">
-          <div className="p-4">
-            <button
-              onClick={handleNewChat}
-              className="w-full bg-stone-600 text-white py-2 px-4 rounded-lg hover:bg-stone-700 transition-colors flex items-center justify-center mb-4"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Neuer Chat
-            </button>
-            
-            <div className="space-y-2">
-              {chatSessions.map((session) => (
+        {/* Sessions List */}
+        <div className="flex-1 overflow-y-auto">
+          {sessions.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              <MessageCircle size={48} className="mx-auto mb-2 opacity-50" />
+              <p>Noch keine Chats</p>
+            </div>
+          ) : (
+            <div className="p-2">
+              {sessions.map((session) => (
                 <button
                   key={session.id}
-                  onClick={() => setActiveSession(session)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    activeSession?.id === session.id
-                      ? 'bg-stone-100 text-stone-800'
-                      : 'text-stone-600 hover:bg-stone-50'
+                  onClick={() => setCurrentSession(session)}
+                  className={`w-full text-left p-3 rounded-lg mb-2 transition-colors ${
+                    currentSession?.id === session.id 
+                      ? 'bg-blue-50 border border-blue-200' 
+                      : 'hover:bg-gray-50'
                   }`}
                 >
-                  <div className="font-medium text-sm truncate">
-                    {session.title}
-                  </div>
-                  <div className="text-xs text-stone-500">
+                  <div className="font-medium text-gray-800 truncate">{session.title}</div>
+                  <div className="text-sm text-gray-500">
                     {session.message_count} Nachrichten
                   </div>
                 </button>
               ))}
             </div>
-          </div>
+          )}
         </div>
+      </div>
 
-        {/* Messages */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 ? (
-              <div className="text-center py-12">
-                <Bot className="w-16 h-16 text-stone-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-stone-800 mb-2">
-                  Hallo! Ich bin Zeno.
-                </h3>
-                <p className="text-stone-600">
-                  Ich bin hier, um dir bei deinem Wohlbefinden zu helfen. Wie kann ich dir heute helfen?
-                </p>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {currentSession ? (
+          <>
+            {/* Chat Header */}
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <h2 className="font-semibold text-gray-800">{currentSession.title}</h2>
+              <p className="text-sm text-gray-500">
+                {personality === 'friendly' ? 'Freundschaftlicher Modus' : 'Professioneller Modus'}
+              </p>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🤖</div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Hallo! Ich bin Zeno</h3>
+                  <p className="text-gray-600">
+                    {personality === 'friendly' 
+                      ? 'Ich bin hier, um dir zu helfen und zuzuhören. Wie geht es dir heute?'
+                      : 'Ich bin dein professioneller Begleiter für mentale Gesundheit. Womit kann ich dir helfen?'
+                    }
+                  </p>
+                </div>
+              ) : (
+                messages.map((message) => (
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                      message.role === 'user'
-                        ? 'bg-stone-600 text-white'
-                        : 'bg-white text-stone-800 border border-stone-200'
-                    }`}
+                    key={message.id}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className="flex items-start space-x-2">
-                      {message.role === 'assistant' && (
-                        <img 
-                          src="/zenilience_z_logo_2-removebg-preview.png" 
-                          alt="Zeno" 
-                          className="w-4 h-4 mt-0.5 rounded-full"
-                        />
-                      )}
-                      {message.role === 'user' && (
-                        <User className="w-4 h-4 text-white mt-0.5" />
-                      )}
-                      <div className="text-sm leading-relaxed">
-                        {message.content}
-                      </div>
+                    <div
+                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                        message.role === 'user'
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {message.content}
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-            
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white text-stone-800 border border-stone-200 rounded-2xl px-4 py-3 max-w-xs">
-                  <div className="flex items-center space-x-2">
-                    <img 
-                      src="/zenilience_z_logo_2-removebg-preview.png" 
-                      alt="Zeno" 
-                      className="w-4 h-4 rounded-full"
-                    />
+                ))
+              )}
+              
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 rounded-2xl px-4 py-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-stone-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
 
-          {/* Input */}
-          <div className="p-4 bg-white/80 backdrop-blur-sm border-t border-stone-200">
-            <div className="flex items-end space-x-2">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={canSendMessage ? "Schreibe Zeno eine Nachricht..." : "Tageslimit erreicht"}
-                className="flex-1 px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500 focus:border-transparent resize-none"
-                disabled={isLoading || !canSendMessage}
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={isLoading || !inputMessage.trim() || !canSendMessage}
-                className="bg-stone-600 text-white p-3 rounded-lg hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </button>
+            {/* Input */}
+            <div className="p-4 border-t border-gray-200 bg-white">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  placeholder="Schreibe eine Nachricht..."
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isLoading}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={isLoading || !inputMessage.trim()}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg px-4 py-2 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send size={20} />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <MessageCircle size={64} className="mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Wähle einen Chat</h3>
+              <p className="text-gray-600">Oder erstelle einen neuen Chat, um zu beginnen.</p>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

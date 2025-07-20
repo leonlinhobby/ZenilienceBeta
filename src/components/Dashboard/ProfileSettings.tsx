@@ -1,389 +1,289 @@
-import React, { useState } from 'react';
-import { 
-  User, 
-  Settings, 
-  LogOut, 
-  Save, 
-  Crown, 
-  Bell,
-  Shield,
-  CreditCard,
-  Edit3
-} from 'lucide-react';
-import { UserProfile } from '../../types/user';
-import { UserSettings } from '../../types/dashboard';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
+import { User, Settings, Save, LogOut } from 'lucide-react';
 
-interface ProfileSettingsProps {
-  profile: UserProfile;
-  settings: UserSettings | null;
-  onUpdateProfile: (updates: Partial<UserProfile>) => Promise<void>;
-  onUpdateSettings: (updates: Partial<UserSettings>) => Promise<void>;
-  onSignOut: () => Promise<void>;
+interface UserProfile {
+  full_name: string;
+  age: number;
+  gender: string;
+  occupation: string;
+  interests: string[];
+  subscription_type: string;
 }
 
-const ProfileSettings: React.FC<ProfileSettingsProps> = ({
-  profile,
-  settings,
-  onUpdateProfile,
-  onUpdateSettings,
-  onSignOut
-}) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'subscription'>('profile');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    full_name: profile.full_name || '',
-    age: profile.age || '',
-    occupation: profile.occupation || '',
-    interests: profile.interests || []
+const ProfileSettings: React.FC = () => {
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<UserProfile>({
+    full_name: '',
+    age: 0,
+    gender: '',
+    occupation: '',
+    interests: [],
+    subscription_type: 'explorer'
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
 
-  const handleSaveProfile = async () => {
-    await onUpdateProfile({
-      full_name: editForm.full_name,
-      age: parseInt(editForm.age.toString()) || undefined,
-      occupation: editForm.occupation,
-      interests: editForm.interests
-    });
-    setIsEditing(false);
-  };
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
 
-  const handleAddInterest = (interest: string) => {
-    if (interest && !editForm.interests.includes(interest)) {
-      setEditForm(prev => ({
-        ...prev,
-        interests: [...prev.interests, interest]
-      }));
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data) {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRemoveInterest = (interest: string) => {
-    setEditForm(prev => ({
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          ...profile,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user?.id);
+
+      if (error) throw error;
+      
+      alert('Profil erfolgreich gespeichert!');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Fehler beim Speichern des Profils');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInterestToggle = (interest: string) => {
+    setProfile(prev => ({
       ...prev,
-      interests: prev.interests.filter(i => i !== interest)
+      interests: prev.interests.includes(interest)
+        ? prev.interests.filter(i => i !== interest)
+        : [...prev.interests, interest]
     }));
   };
 
-  const interestSuggestions = [
-    'Meditation', 'Yoga', 'Lesen', 'Musik', 'Sport', 'Kochen',
-    'Reisen', 'Natur', 'Kunst', 'Technologie', 'Fotografie', 'Schreiben'
+  const availableInterests = [
+    'Meditation', 'Yoga', 'Sport', 'Lesen', 'Musik', 'Natur',
+    'Kochen', 'Reisen', 'Kunst', 'Technologie', 'Fotografie', 'Schreiben'
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-stone-100 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 pb-24">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-stone-200 px-4 py-6">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-r from-stone-400 to-stone-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-stone-800">
-            {profile.full_name || 'Dein Profil'}
-          </h1>
-          <p className="text-stone-600">
-            {profile.subscription_type === 'zenith' ? 'Zenith Member' : 'Explorer Member'}
-          </p>
-        </div>
+      <div className="text-center pt-8 pb-6">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">👤 Profil</h1>
+        <p className="text-gray-600">Verwalte deine persönlichen Daten</p>
       </div>
 
-      {/* Tabs */}
-      <div className="px-4 py-4">
-        <div className="flex space-x-1 bg-white/80 backdrop-blur-sm rounded-2xl p-1">
-          {[
-            { id: 'profile', label: 'Profil', icon: User },
-            { id: 'account', label: 'Konto', icon: Settings },
-            { id: 'subscription', label: 'Abo', icon: Crown }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl font-medium transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-stone-600 text-white shadow-lg'
-                    : 'text-stone-600 hover:bg-stone-100'
-                }`}
-              >
-                <Icon className="w-4 h-4 mr-2" />
-                {tab.label}
-              </button>
-            );
-          })}
+      {/* Tab Navigation */}
+      <div className="mx-4 mb-6">
+        <div className="bg-white rounded-2xl p-2 shadow-lg border border-gray-100">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 ${
+                activeTab === 'profile'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <User size={20} className="inline mr-2" />
+              Profil
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 ${
+                activeTab === 'settings'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <Settings size={20} className="inline mr-2" />
+              Einstellungen
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="px-4">
-        {activeTab === 'profile' && (
-          <div className="space-y-6">
-            {/* Profile Info */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-stone-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-stone-800">Persönliche Daten</h3>
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="text-stone-600 hover:text-stone-800 transition-colors"
-                >
-                  <Edit3 className="w-5 h-5" />
-                </button>
+      <div className="mx-4">
+        {activeTab === 'profile' ? (
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-800 mb-6">Persönliche Informationen</h2>
+            
+            <div className="space-y-6">
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Vollständiger Name
+                </label>
+                <input
+                  type="text"
+                  value={profile.full_name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Dein Name"
+                />
               </div>
 
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-2">
-                      Vollständiger Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.full_name}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
-                      className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500"
-                    />
-                  </div>
+              {/* Age */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Alter
+                </label>
+                <input
+                  type="number"
+                  value={profile.age || ''}
+                  onChange={(e) => setProfile(prev => ({ ...prev, age: parseInt(e.target.value) || 0 }))}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Dein Alter"
+                />
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-stone-700 mb-2">
-                        Alter
-                      </label>
-                      <input
-                        type="number"
-                        value={editForm.age}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, age: e.target.value }))}
-                        className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-stone-700 mb-2">
-                        Beruf
-                      </label>
-                      <input
-                        type="text"
-                        value={editForm.occupation}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, occupation: e.target.value }))}
-                        className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500"
-                      />
-                    </div>
-                  </div>
+              {/* Gender */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Geschlecht
+                </label>
+                <select
+                  value={profile.gender}
+                  onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Bitte wählen</option>
+                  <option value="male">Männlich</option>
+                  <option value="female">Weiblich</option>
+                  <option value="other">Divers</option>
+                  <option value="prefer_not_to_say">Keine Angabe</option>
+                </select>
+              </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-2">
-                      Interessen
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {editForm.interests.map((interest) => (
-                        <span
-                          key={interest}
-                          className="bg-stone-100 text-stone-700 px-3 py-1 rounded-full text-sm flex items-center"
-                        >
-                          {interest}
-                          <button
-                            onClick={() => handleRemoveInterest(interest)}
-                            className="ml-2 text-stone-500 hover:text-stone-700"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {interestSuggestions
-                        .filter(interest => !editForm.interests.includes(interest))
-                        .map((interest) => (
-                          <button
-                            key={interest}
-                            onClick={() => handleAddInterest(interest)}
-                            className="bg-stone-50 text-stone-600 px-3 py-1 rounded-full text-sm hover:bg-stone-100 transition-colors"
-                          >
-                            + {interest}
-                          </button>
-                        ))}
-                    </div>
-                  </div>
+              {/* Occupation */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Beruf
+                </label>
+                <input
+                  type="text"
+                  value={profile.occupation}
+                  onChange={(e) => setProfile(prev => ({ ...prev, occupation: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Dein Beruf"
+                />
+              </div>
 
-                  <div className="flex space-x-3">
+              {/* Interests */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Interessen
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {availableInterests.map((interest) => (
                     <button
-                      onClick={handleSaveProfile}
-                      className="flex-1 bg-stone-600 text-white py-3 px-6 rounded-lg hover:bg-stone-700 transition-colors flex items-center justify-center"
+                      key={interest}
+                      onClick={() => handleInterestToggle(interest)}
+                      className={`p-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                        profile.interests.includes(interest)
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
-                      <Save className="w-4 h-4 mr-2" />
-                      Speichern
+                      {interest}
                     </button>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="px-6 py-3 text-stone-600 hover:text-stone-800 transition-colors"
-                    >
-                      Abbrechen
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-stone-600">Name</label>
-                      <p className="font-medium text-stone-800">
-                        {profile.full_name || 'Nicht angegeben'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-stone-600">Alter</label>
-                      <p className="font-medium text-stone-800">
-                        {profile.age || 'Nicht angegeben'}
-                      </p>
-                    </div>
+              </div>
+
+              {/* Save Button */}
+              <button
+                onClick={saveProfile}
+                disabled={saving}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Speichern...</span>
                   </div>
-                  <div>
-                    <label className="text-sm text-stone-600">Beruf</label>
-                    <p className="font-medium text-stone-800">
-                      {profile.occupation || 'Nicht angegeben'}
-                    </p>
+                ) : (
+                  <div className="flex items-center justify-center space-x-2">
+                    <Save size={20} />
+                    <span>Profil speichern</span>
                   </div>
-                  <div>
-                    <label className="text-sm text-stone-600">Interessen</label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {profile.interests && profile.interests.length > 0 ? (
-                        profile.interests.map((interest) => (
-                          <span
-                            key={interest}
-                            className="bg-stone-100 text-stone-700 px-3 py-1 rounded-full text-sm"
-                          >
-                            {interest}
-                          </span>
-                        ))
-                      ) : (
-                        <p className="text-stone-500">Keine Interessen angegeben</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+                )}
+              </button>
             </div>
           </div>
-        )}
-
-        {activeTab === 'account' && (
+        ) : (
           <div className="space-y-6">
-            {/* Account Settings */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-stone-200">
-              <h3 className="text-xl font-bold text-stone-800 mb-4">Konto-Einstellungen</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Bell className="w-5 h-5 text-stone-600 mr-3" />
-                    <span className="text-stone-800">Benachrichtigungen</span>
-                  </div>
-                  <button
-                    onClick={() => onUpdateSettings({ 
-                      notifications_enabled: !settings?.notifications_enabled 
-                    })}
-                    className={`w-12 h-6 rounded-full transition-colors ${
-                      settings?.notifications_enabled ? 'bg-stone-600' : 'bg-stone-300'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform ${
-                      settings?.notifications_enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}></div>
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Shield className="w-5 h-5 text-stone-600 mr-3" />
-                    <span className="text-stone-800">Datenschutz</span>
-                  </div>
-                  <button className="text-stone-600 hover:text-stone-800 transition-colors">
-                    Verwalten
-                  </button>
-                </div>
+            {/* Subscription Info */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Abonnement</h2>
+              <div className={`p-4 rounded-lg ${
+                profile.subscription_type === 'zenith' 
+                  ? 'bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-200'
+                  : 'bg-gradient-to-r from-blue-100 to-cyan-100 border border-blue-200'
+              }`}>
+                <h3 className="font-semibold text-gray-800 mb-2">
+                  {profile.subscription_type === 'zenith' ? '✨ Zenith Premium' : '🌟 Explorer'}
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  {profile.subscription_type === 'zenith' 
+                    ? 'Unbegrenzte Lektionen und Chat-Nachrichten'
+                    : 'Eine Lektion pro Tag, 5 Chat-Nachrichten täglich'
+                  }
+                </p>
               </div>
             </div>
 
-            {/* Danger Zone */}
-            <div className="bg-red-50 rounded-3xl p-6 border border-red-200">
-              <h3 className="text-xl font-bold text-red-800 mb-4">Gefahrenbereich</h3>
-              
+            {/* Account Actions */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Account</h2>
               <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-medium text-gray-800 mb-1">E-Mail</h3>
+                  <p className="text-gray-600">{user?.email}</p>
+                </div>
+                
                 <button
-                  onClick={onSignOut}
-                  className="w-full bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+                  onClick={signOut}
+                  className="w-full bg-gradient-to-r from-red-500 to-pink-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Abmelden
+                  <div className="flex items-center justify-center space-x-2">
+                    <LogOut size={20} />
+                    <span>Abmelden</span>
+                  </div>
                 </button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'subscription' && (
-          <div className="space-y-6">
-            {/* Current Plan */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-stone-200">
-              <h3 className="text-xl font-bold text-stone-800 mb-4">Aktueller Plan</h3>
-              
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  {profile.subscription_type === 'zenith' ? (
-                    <Crown className="w-8 h-8 text-yellow-600 mr-3" />
-                  ) : (
-                    <User className="w-8 h-8 text-stone-600 mr-3" />
-                  )}
-                  <div>
-                    <h4 className="text-lg font-semibold text-stone-800">
-                      {profile.subscription_type === 'zenith' ? 'Zenith' : 'Explorer'}
-                    </h4>
-                    <p className="text-stone-600">
-                      {profile.subscription_type === 'zenith' ? 'Premium Plan' : 'Kostenloser Plan'}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-stone-800">
-                    {profile.subscription_type === 'zenith' ? '5,99€' : 'Kostenlos'}
-                  </div>
-                  {profile.subscription_type === 'zenith' && (
-                    <div className="text-sm text-stone-600">/Monat</div>
-                  )}
-                </div>
-              </div>
-
-              {profile.subscription_type === 'explorer' && (
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
-                  <h4 className="font-semibold text-yellow-800 mb-2">
-                    Upgrade zu Zenith
-                  </h4>
-                  <ul className="text-sm text-yellow-700 space-y-1 mb-4">
-                    <li>• Unbegrenzte Lektionen</li>
-                    <li>• Unbegrenzter Zeno Chat</li>
-                    <li>• Erweiterte Analytik</li>
-                    <li>• Premium Inhalte</li>
-                  </ul>
-                  <button className="w-full bg-yellow-600 text-white py-3 px-6 rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center">
-                    <CreditCard className="w-4 h-4 mr-2" />
-                    Upgrade (Coming Soon)
-                  </button>
-                </div>
-              )}
-
-              {profile.subscription_type === 'zenith' && (
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 border border-green-200">
-                  <h4 className="font-semibold text-green-800 mb-2">
-                    Zenith Vorteile
-                  </h4>
-                  <ul className="text-sm text-green-700 space-y-1 mb-4">
-                    <li>✓ Unbegrenzte Lektionen</li>
-                    <li>✓ Unbegrenzter Zeno Chat</li>
-                    <li>✓ Erweiterte Analytik</li>
-                    <li>✓ Premium Inhalte</li>
-                  </ul>
-                  <button className="w-full bg-stone-600 text-white py-3 px-6 rounded-lg hover:bg-stone-700 transition-colors">
-                    Abo verwalten (Coming Soon)
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}

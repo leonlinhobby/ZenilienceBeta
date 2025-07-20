@@ -1,6 +1,6 @@
 import { ChatMessage, ChatSettings, DeepSeekResponse } from './types';
 
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 export const sendMessageToDeepSeek = async (
