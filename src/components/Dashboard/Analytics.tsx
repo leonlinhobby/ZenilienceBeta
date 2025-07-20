@@ -110,7 +110,7 @@ const Analytics: React.FC = () => {
       {/* Header */}
       <div className="text-center pt-8 pb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">📊 Analytics</h1>
-        <p className="text-gray-600">Dein Wohlbefinden im Überblick</p>
+        <p className="text-gray-600">Track your health and wellness metrics</p>
       </div>
 
       {/* Current Metrics */}
@@ -126,14 +126,14 @@ const Analytics: React.FC = () => {
           />
           <MetricCard
             icon={Heart}
-            title="Stimmung"
+            title="Mood"
             value={metrics?.mood_score}
             description="Deine allgemeine Stimmung"
             color="bg-gradient-to-r from-green-500 to-emerald-500"
           />
           <MetricCard
             icon={Moon}
-            title="Schlafqualität"
+            title="Sleep Quality"
             value={metrics?.sleep_quality}
             description="Wie gut hast du geschlafen?"
             color="bg-gradient-to-r from-indigo-500 to-purple-500"
@@ -147,14 +147,14 @@ const Analytics: React.FC = () => {
           />
           <MetricCard
             icon={Brain}
-            title="Angst Level"
+            title="Anxiety Level"
             value={metrics?.anxiety_level}
             description="Wie ängstlich fühlst du dich?"
             color="bg-gradient-to-r from-orange-500 to-red-500"
           />
           <MetricCard
             icon={Zap}
-            title="Energie"
+            title="Energy Level"
             value={metrics?.energy_level}
             description="Dein Energielevel heute"
             color="bg-gradient-to-r from-yellow-500 to-orange-500"
@@ -165,7 +165,7 @@ const Analytics: React.FC = () => {
       {/* Weekly Trend */}
       {weeklyData.length > 0 && (
         <div className="mx-4 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">7-Tage Trend</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">7-Day Trend</h2>
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
             <div className="space-y-4">
               {weeklyData.slice(0, 7).map((day, index) => (
@@ -179,7 +179,7 @@ const Analytics: React.FC = () => {
                   </div>
                   <div className="flex space-x-2">
                     <div className="flex items-center space-x-1">
-                      <span className="text-xs text-gray-500">Stimmung:</span>
+                      <span className="text-xs text-gray-500">Mood:</span>
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${getScoreColor(day.mood_score)}`}>
                         {day.mood_score}
                       </div>
