@@ -4,7 +4,7 @@ import LandingPage from './components/LandingPage';
 import LoginPage from './components/Auth/LoginPage';
 import SignUpPage from './components/Auth/SignUpPage';
 import DashboardPage from './components/Dashboard/DashboardPage';
-import ProtectedRoute from './components/Auth/ProtectedRoute';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
