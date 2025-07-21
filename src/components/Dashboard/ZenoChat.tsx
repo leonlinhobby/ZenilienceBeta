@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import { sendMessageToDeepSeek } from '../ChatBot/api';
-import { Send, Plus, Settings, MessageCircle, Lock } from 'lucide-react';
+import { Send, Plus, Settings, MessageCircle, Lock, Menu, X } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -30,6 +30,7 @@ const ZenoChat: React.FC = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [personality, setPersonality] = useState<'friendly' | 'professional'>('friendly');
   const [profile, setProfile] = useState<UserProfile>({ subscription_type: 'explorer' });
   const [dailyMessages, setDailyMessages] = useState(0);
@@ -165,6 +166,7 @@ const ZenoChat: React.FC = () => {
       setSessions(prev => [data, ...prev]);
       setCurrentSession(data);
       setMessages([]);
+      setShowSidebar(false);
     } catch (error) {
       console.error('Error creating session:', error);
     }
@@ -268,19 +270,40 @@ const ZenoChat: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 pb-24 flex">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 pb-24 flex relative">
+      {/* Mobile Sidebar Overlay */}
+      {showSidebar && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className={`
+        fixed lg:relative inset-y-0 left-0 z-50 lg:z-0
+        w-80 bg-white border-r border-gray-200 flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-gray-800">Zeno Chat</h1>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Settings size={20} />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Settings size={20} />
+              </button>
+              <button
+                onClick={() => setShowSidebar(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
           
           <button
@@ -344,7 +367,10 @@ const ZenoChat: React.FC = () => {
               {sessions.map((session) => (
                 <button
                   key={session.id}
-                  onClick={() => setCurrentSession(session)}
+                  onClick={() => {
+                    setCurrentSession(session);
+                    setShowSidebar(false);
+                  }}
                   className={`w-full text-left p-3 rounded-lg mb-2 transition-colors ${
                     currentSession?.id === session.id 
                       ? 'bg-blue-50 border border-blue-200' 
@@ -363,15 +389,23 @@ const ZenoChat: React.FC = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {currentSession ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
-              <h2 className="font-semibold text-gray-800">{currentSession.title}</h2>
-              <p className="text-sm text-gray-500">
-                {personality === 'friendly' ? 'Friendly Mode' : 'Professional Mode'}
-              </p>
+            <div className="p-4 border-b border-gray-200 bg-white flex items-center">
+              <button
+                onClick={() => setShowSidebar(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden mr-3"
+              >
+                <Menu size={20} />
+              </button>
+              <div>
+                <h2 className="font-semibold text-gray-800">{currentSession.title}</h2>
+                <p className="text-sm text-gray-500">
+                  {personality === 'friendly' ? 'Friendly Mode' : 'Professional Mode'}
+                </p>
+              </div>
             </div>
 
             {/* Messages */}
@@ -446,6 +480,12 @@ const ZenoChat: React.FC = () => {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
+              <button
+                onClick={() => setShowSidebar(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden mb-4"
+              >
+                <Menu size={24} />
+              </button>
               <MessageCircle size={64} className="mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Select a chat</h3>
               <p className="text-gray-600">Or create a new chat to get started.</p>

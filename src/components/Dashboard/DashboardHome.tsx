@@ -35,12 +35,24 @@ const DashboardHome: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      fetchProfile();
-      fetchLessons();
-      fetchStreak();
-      fetchDailyProgress();
+      initializeDashboard();
     }
   }, [user]);
+
+  const initializeDashboard = async () => {
+    try {
+      await Promise.all([
+        fetchProfile(),
+        fetchStreak(),
+        fetchDailyProgress(),
+        fetchLessons()
+      ]);
+    } catch (error) {
+      console.error('Error initializing dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -89,14 +101,13 @@ const DashboardHome: React.FC = () => {
       if (error) throw error;
       
       if (!data || data.length === 0) {
-        await generateNewLessons();
+        await generateDefaultLessons();
       } else {
         setLessons(data);
       }
     } catch (error) {
       console.error('Error fetching lessons:', error);
-    } finally {
-      setLoading(false);
+      await generateDefaultLessons();
     }
   };
 
@@ -108,13 +119,15 @@ const DashboardHome: React.FC = () => {
         .eq('user_id', user?.id)
         .maybeSingle();
 
-      if (data) setStreak(data);
+      if (data) {
+        setStreak(data);
+      }
     } catch (error) {
       console.error('Error fetching streak:', error);
     }
   };
 
-  const generateNewLessons = async () => {
+  const generateDefaultLessons = async () => {
     const defaultLessons = [
       {
         title: "Morning Meditation",
@@ -184,22 +197,24 @@ const DashboardHome: React.FC = () => {
     ];
 
     try {
-      for (let i = 0; i < defaultLessons.length; i++) {
-        const lesson = defaultLessons[i];
-        await supabase
-          .from('lessons')
-          .insert({
-            user_id: user?.id,
-            title: lesson.title,
-            description: lesson.description,
-            lesson_type: lesson.lesson_type,
-            content: lesson.content,
-            estimated_duration: lesson.estimated_duration,
-            difficulty_level: lesson.difficulty_level,
-            position_in_queue: i + 1
-          });
-      }
-      await fetchLessons();
+      const lessonsToInsert = defaultLessons.map((lesson, index) => ({
+        user_id: user?.id,
+        title: lesson.title,
+        description: lesson.description,
+        lesson_type: lesson.lesson_type,
+        content: lesson.content,
+        estimated_duration: lesson.estimated_duration,
+        difficulty_level: lesson.difficulty_level,
+        position_in_queue: index + 1
+      }));
+
+      const { data, error } = await supabase
+        .from('lessons')
+        .insert(lessonsToInsert)
+        .select();
+
+      if (error) throw error;
+      setLessons(data || []);
     } catch (error) {
       console.error('Error generating lessons:', error);
     }
@@ -268,10 +283,7 @@ const DashboardHome: React.FC = () => {
       }
 
       // Refresh data
-      await fetchLessons();
-      await fetchStreak();
-      await fetchDailyProgress();
-      
+      await initializeDashboard();
       setSelectedLesson(null);
     } catch (error) {
       console.error('Error completing lesson:', error);
@@ -300,8 +312,11 @@ const DashboardHome: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -309,37 +324,37 @@ const DashboardHome: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-24">
       {/* Header */}
-      <div className="text-center pt-8 pb-6">
+      <div className="text-center pt-6 sm:pt-8 pb-4 sm:pb-6 px-4">
         <div className="flex items-center justify-center mb-2">
           <img 
             src="/zenilience_z_logo_2-removebg-preview.png" 
             alt="Zenilience Logo" 
-            className="h-8 w-auto mr-2"
+            className="h-6 sm:h-8 w-auto mr-2"
           />
-          <h1 className="text-2xl font-bold text-gray-800">Zenilience</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Zenilience</h1>
         </div>
-        <p className="text-gray-600">Welcome back! Ready for today's journey?</p>
+        <p className="text-sm sm:text-base text-gray-600">Welcome back! Ready for today's journey?</p>
       </div>
 
       {/* Streak Section */}
-      <div className="mx-4 mb-8">
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+      <div className="mx-4 mb-6 sm:mb-8">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-full p-3">
-                <Flame className="text-white" size={24} />
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-full p-2 sm:p-3">
+                <Flame className="text-white" size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">Your Streak</h3>
-                <p className="text-gray-600">Keep your motivation going</p>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-800">Your Streak</h3>
+                <p className="text-sm text-gray-600">Keep your motivation going</p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-orange-500">{streak.current_streak}</div>
-              <div className="text-sm text-gray-500">days</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-500">{streak.current_streak}</div>
+              <div className="text-xs sm:text-sm text-gray-500">days</div>
             </div>
           </div>
-          <div className="mt-4 flex justify-between text-sm text-gray-600">
+          <div className="mt-3 sm:mt-4 flex justify-between text-xs sm:text-sm text-gray-600">
             <span>Longest streak: {streak.longest_streak} days</span>
             <span>Zen points: {streak.zen_garden_points}</span>
           </div>
@@ -348,13 +363,13 @@ const DashboardHome: React.FC = () => {
 
       {/* Subscription Limit Info */}
       {profile.subscription_type === 'explorer' && (
-        <div className="mx-4 mb-6">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+        <div className="mx-4 mb-4 sm:mb-6">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 sm:p-4">
             <div className="flex items-center">
-              <Lock className="w-5 h-5 text-yellow-600 mr-2" />
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 mr-2" />
               <div>
-                <p className="text-yellow-800 font-medium">Explorer Plan</p>
-                <p className="text-yellow-700 text-sm">
+                <p className="text-sm sm:text-base text-yellow-800 font-medium">Explorer Plan</p>
+                <p className="text-xs sm:text-sm text-yellow-700">
                   {dailyLessonsCompleted}/1 daily lesson completed. 
                   {!canStartLesson() && " Upgrade to Zenith for unlimited lessons."}
                 </p>
@@ -365,28 +380,28 @@ const DashboardHome: React.FC = () => {
       )}
 
       {/* Lessons Section */}
-      <div className="mx-4">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Lessons</h2>
-        <div className="space-y-4">
+      <div className="mx-4 pb-4">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Your Lessons</h2>
+        <div className="space-y-3 sm:space-y-4">
           {lessons.map((lesson, index) => (
             <div
               key={lesson.id}
-              className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
+              className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
             >
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-2xl">{getTypeIcon(lesson.lesson_type)}</span>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{lesson.title}</h3>
-                      <p className="text-gray-600 text-sm">{lesson.description}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                    <span className="text-xl sm:text-2xl">{getTypeIcon(lesson.lesson_type)}</span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-800 truncate">{lesson.title}</h3>
+                      <p className="text-sm text-gray-600 line-clamp-2">{lesson.description}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-4 mt-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4 mt-3 sm:mt-4">
                     <div className="flex items-center space-x-1 text-gray-500">
-                      <Clock size={16} />
-                      <span className="text-sm">{lesson.estimated_duration} min</span>
+                      <Clock size={14} />
+                      <span className="text-xs sm:text-sm">{lesson.estimated_duration} min</span>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(lesson.difficulty_level)}`}>
                       {lesson.difficulty_level}
@@ -397,13 +412,13 @@ const DashboardHome: React.FC = () => {
                 <button
                   onClick={() => canStartLesson() ? setSelectedLesson(lesson) : null}
                   disabled={!canStartLesson()}
-                  className={`rounded-full p-3 transition-all duration-300 ${
+                  className={`ml-3 sm:ml-4 rounded-full p-2 sm:p-3 transition-all duration-300 flex-shrink-0 ${
                     canStartLesson()
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:scale-105'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  {canStartLesson() ? <Play size={20} /> : <Lock size={20} />}
+                  {canStartLesson() ? <Play size={16} /> : <Lock size={16} />}
                 </button>
               </div>
             </div>
