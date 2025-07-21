@@ -11,12 +11,12 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
   const [quote, setQuote] = useState('');
 
   const quotes = [
-    "Der Weg ist das Ziel. - Konfuzius",
-    "In der Ruhe liegt die Kraft. - Konfuzius",
-    "Wer andere kennt, ist klug. Wer sich selbst kennt, ist weise. - Laozi",
-    "Das Glück deines Lebens hängt von der Beschaffenheit deiner Gedanken ab. - Marcus Aurelius",
-    "Sei du selbst die Veränderung, die du dir wünschst für diese Welt. - Mahatma Gandhi",
-    "Der beste Zeitpunkt, einen Baum zu pflanzen, war vor 20 Jahren. Der zweitbeste ist jetzt. - Chinesisches Sprichwort"
+    "The way is the goal. - Confucius",
+    "In stillness lies strength. - Confucius",
+    "He who knows others is wise. He who knows himself is enlightened. - Laozi",
+    "The happiness of your life depends upon the quality of your thoughts. - Marcus Aurelius",
+    "Be yourself the change you wish to see in this world. - Mahatma Gandhi",
+    "The best time to plant a tree was 20 years ago. The second best is now. - Chinese Proverb"
   ];
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
         .from('user_streaks')
         .select('total_lessons_completed, zen_garden_points')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (streakData) {
         setTotalLessons(streakData.total_lessons_completed || 0);
@@ -86,8 +86,8 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 pb-24">
       {/* Header */}
       <div className="text-center pt-8 pb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">🌸 Zen Garten</h1>
-        <p className="text-gray-600">Dein persönlicher Garten des Wachstums</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">🌸 Zen Garden</h1>
+        <p className="text-gray-600">Your personal garden of growth</p>
       </div>
 
       {/* Garden Stats */}
@@ -96,11 +96,11 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-emerald-600">{totalLessons}</div>
-              <div className="text-sm text-gray-600">Abgeschlossene Lektionen</div>
+              <div className="text-sm text-gray-600">Completed Lessons</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-purple-600">{zenPoints}</div>
-              <div className="text-sm text-gray-600">Zen Punkte</div>
+              <div className="text-sm text-gray-600">Zen Points</div>
             </div>
           </div>
         </div>
@@ -121,14 +121,14 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
           {/* Garden Content */}
           <div className="relative z-10">
             <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">
-              Dein Garten ({flowerCount} Blumen)
+              Your Garden ({flowerCount} flowers)
             </h3>
             
             {flowerCount === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">🌱</div>
-                <p className="text-gray-600">Dein Garten wartet darauf zu blühen!</p>
-                <p className="text-sm text-gray-500 mt-2">Schließe deine erste Lektion ab, um eine Blume zu pflanzen.</p>
+                <p className="text-gray-600">Your garden is waiting to bloom!</p>
+                <p className="text-sm text-gray-500 mt-2">Complete your first lesson to plant a flower.</p>
               </div>
             ) : (
               <div className="flex flex-wrap justify-center items-end space-x-4 py-8">
@@ -141,7 +141,7 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
               <div className="mt-8 text-center">
                 <div className="bg-white/50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-2">
-                    Nächste Blume bei {flowerCount === 0 ? 1 : flowerCount === 1 ? 3 : flowerCount === 2 ? 5 : flowerCount === 3 ? 7 : 9} Lektionen
+                    Next flower at {flowerCount === 0 ? 1 : flowerCount === 1 ? 3 : flowerCount === 2 ? 5 : flowerCount === 3 ? 7 : 9} lessons
                   </p>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
@@ -161,7 +161,7 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
       {/* Daily Quote */}
       <div className="mx-4">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">💭 Weisheit des Tages</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">💭 Wisdom of the Day</h3>
           <blockquote className="text-center text-gray-700 italic text-lg leading-relaxed">
             "{quote}"
           </blockquote>
@@ -169,7 +169,7 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
             onClick={setRandomQuote}
             className="mt-4 mx-auto block px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm hover:shadow-lg transition-all duration-300"
           >
-            Neues Zitat
+            New Quote
           </button>
         </div>
       </div>

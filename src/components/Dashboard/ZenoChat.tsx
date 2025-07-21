@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import { sendMessageToDeepSeek } from '../ChatBot/api';
-import { Send, Plus, Settings, MessageCircle } from 'lucide-react';
+import { Send, Plus, Settings, MessageCircle, Lock } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -18,6 +18,10 @@ interface ChatSession {
   message_count: number;
 }
 
+interface UserProfile {
+  subscription_type: 'explorer' | 'zenith';
+}
+
 const ZenoChat: React.FC = () => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -27,12 +31,16 @@ const ZenoChat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [personality, setPersonality] = useState<'friendly' | 'professional'>('friendly');
+  const [profile, setProfile] = useState<UserProfile>({ subscription_type: 'explorer' });
+  const [dailyMessages, setDailyMessages] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user) {
+      fetchProfile();
       fetchSessions();
       fetchUserSettings();
+      fetchDailyMessageCount();
     }
   }, [user]);
 
@@ -50,13 +58,52 @@ const ZenoChat: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const fetchProfile = async () => {
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('subscription_type')
+        .eq('id', user?.id)
+        .maybeSingle();
+
+      if (data) {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const fetchDailyMessageCount = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('id')
+        .eq('user_id', user?.id)
+        .eq('role', 'user')
+        .gte('created_at', today + 'T00:00:00.000Z')
+        .lt('created_at', today + 'T23:59:59.999Z');
+
+      if (error) throw error;
+      setDailyMessages(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching daily message count:', error);
+    }
+  };
+
+  const canSendMessage = () => {
+    if (profile.subscription_type === 'zenith') return true;
+    return dailyMessages < 5;
+  };
+
   const fetchUserSettings = async () => {
     try {
       const { data } = await supabase
         .from('user_settings')
         .select('chat_personality')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setPersonality(data.chat_personality);
@@ -108,7 +155,7 @@ const ZenoChat: React.FC = () => {
         .from('chat_sessions')
         .insert({
           user_id: user?.id,
-          title: 'Neuer Chat'
+          title: 'New Chat'
         })
         .select()
         .single();
@@ -137,7 +184,7 @@ const ZenoChat: React.FC = () => {
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !currentSession || isLoading) return;
+    if (!inputMessage.trim() || !currentSession || isLoading || !canSendMessage()) return;
 
     const userMessage = inputMessage.trim();
     setInputMessage('');
@@ -165,8 +212,8 @@ const ZenoChat: React.FC = () => {
 
       // Get AI response
       const systemPrompt = personality === 'friendly' 
-        ? 'Du bist Zeno, ein freundlicher und einfühlsamer Begleiter für mentale Gesundheit. Antworte kurz (1-2 Sätze), warm und unterstützend. Verwende keine Formatierung wie **fett** oder _kursiv_.'
-        : 'Du bist Zeno, ein professioneller Psychologe und Therapeut. Antworte kurz (1-2 Sätze), sachlich und hilfreich. Verwende keine Formatierung wie **fett** oder _kursiv_.';
+        ? 'You are Zeno, a friendly and empathetic mental health companion. Respond briefly (1-2 sentences), warmly and supportively. Use no formatting like **bold** or _italic_.'
+        : 'You are Zeno, a professional psychologist and therapist. Respond briefly (1-2 sentences), factually and helpfully. Use no formatting like **bold** or _italic_.';
 
       const response = await sendMessageToDeepSeek(
         userMessage,
@@ -210,6 +257,9 @@ const ZenoChat: React.FC = () => {
         })
         .eq('id', currentSession.id);
 
+      // Update daily message count
+      setDailyMessages(prev => prev + 1);
+
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -238,14 +288,29 @@ const ZenoChat: React.FC = () => {
             className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg py-2 px-4 flex items-center justify-center space-x-2 hover:shadow-lg transition-all duration-300"
           >
             <Plus size={20} />
-            <span>Neuer Chat</span>
+            <span>New Chat</span>
           </button>
         </div>
+
+        {/* Subscription Info */}
+        {profile.subscription_type === 'explorer' && (
+          <div className="p-4 border-b border-gray-200 bg-yellow-50">
+            <div className="flex items-center">
+              <Lock className="w-4 h-4 text-yellow-600 mr-2" />
+              <div>
+                <p className="text-yellow-800 font-medium text-sm">Explorer Plan</p>
+                <p className="text-yellow-700 text-xs">
+                  {dailyMessages}/5 daily messages used
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Settings Panel */}
         {showSettings && (
           <div className="p-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="font-semibold text-gray-800 mb-3">Chat-Persönlichkeit</h3>
+            <h3 className="font-semibold text-gray-800 mb-3">Chat Personality</h3>
             <div className="space-y-2">
               <button
                 onClick={() => updatePersonality('friendly')}
@@ -253,7 +318,7 @@ const ZenoChat: React.FC = () => {
                   personality === 'friendly' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
                 }`}
               >
-                Freundschaftlich
+                Friendly
               </button>
               <button
                 onClick={() => updatePersonality('professional')}
@@ -261,7 +326,7 @@ const ZenoChat: React.FC = () => {
                   personality === 'professional' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
                 }`}
               >
-                Professionell
+                Professional
               </button>
             </div>
           </div>
@@ -272,7 +337,7 @@ const ZenoChat: React.FC = () => {
           {sessions.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
               <MessageCircle size={48} className="mx-auto mb-2 opacity-50" />
-              <p>Noch keine Chats</p>
+              <p>No chats yet</p>
             </div>
           ) : (
             <div className="p-2">
@@ -288,7 +353,7 @@ const ZenoChat: React.FC = () => {
                 >
                   <div className="font-medium text-gray-800 truncate">{session.title}</div>
                   <div className="text-sm text-gray-500">
-                    {session.message_count} Nachrichten
+                    {session.message_count} messages
                   </div>
                 </button>
               ))}
@@ -305,7 +370,7 @@ const ZenoChat: React.FC = () => {
             <div className="p-4 border-b border-gray-200 bg-white">
               <h2 className="font-semibold text-gray-800">{currentSession.title}</h2>
               <p className="text-sm text-gray-500">
-                {personality === 'friendly' ? 'Freundschaftlicher Modus' : 'Professioneller Modus'}
+                {personality === 'friendly' ? 'Friendly Mode' : 'Professional Mode'}
               </p>
             </div>
 
@@ -314,11 +379,11 @@ const ZenoChat: React.FC = () => {
               {messages.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">🤖</div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Hallo! Ich bin Zeno</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Hello! I'm Zeno</h3>
                   <p className="text-gray-600">
                     {personality === 'friendly' 
-                      ? 'Ich bin hier, um dir zu helfen und zuzuhören. Wie geht es dir heute?'
-                      : 'Ich bin dein professioneller Begleiter für mentale Gesundheit. Womit kann ich dir helfen?'
+                      ? 'I\'m here to help and listen. How are you feeling today?'
+                      : 'I\'m your professional mental health companion. How can I help you today?'
                     }
                   </p>
                 </div>
@@ -364,13 +429,13 @@ const ZenoChat: React.FC = () => {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder="Schreibe eine Nachricht..."
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isLoading}
+                  placeholder={canSendMessage() ? "Write a message..." : "Daily limit reached"}
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                  disabled={isLoading || !canSendMessage()}
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={isLoading || !inputMessage.trim()}
+                  disabled={isLoading || !inputMessage.trim() || !canSendMessage()}
                   className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg px-4 py-2 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send size={20} />
@@ -382,8 +447,8 @@ const ZenoChat: React.FC = () => {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <MessageCircle size={64} className="mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Wähle einen Chat</h3>
-              <p className="text-gray-600">Oder erstelle einen neuen Chat, um zu beginnen.</p>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Select a chat</h3>
+              <p className="text-gray-600">Or create a new chat to get started.</p>
             </div>
           </div>
         )}

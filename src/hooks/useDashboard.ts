@@ -35,9 +35,9 @@ export const useDashboard = () => {
         .from('user_settings')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (settingsError && settingsError.code === 'PGRST116') {
+      if (!settingsData) {
         // No settings found, create default settings
         const { data: newSettings } = await supabase
           .from('user_settings')
@@ -49,7 +49,7 @@ export const useDashboard = () => {
             theme: 'light'
           })
           .select()
-          .single();
+          .maybeSingle();
         setSettings(newSettings);
       } else {
         setSettings(settingsData);
@@ -60,9 +60,9 @@ export const useDashboard = () => {
         .from('user_streaks')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (streaksError && streaksError.code === 'PGRST116') {
+      if (!streaksData) {
         // No streaks found, create default streak record
         const { data: newStreaks } = await supabase
           .from('user_streaks')
@@ -75,7 +75,7 @@ export const useDashboard = () => {
             streak_freeze_used: false
           })
           .select()
-          .single();
+          .maybeSingle();
         setStreaks(newStreaks);
       } else {
         setStreaks(streaksData);

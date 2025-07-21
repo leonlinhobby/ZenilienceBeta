@@ -33,10 +33,9 @@ const Analytics: React.FC = () => {
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setMetrics(data);
+      if (data) setMetrics(data);
     } catch (error) {
       console.error('Error fetching metrics:', error);
     } finally {
@@ -68,10 +67,10 @@ const Analytics: React.FC = () => {
   };
 
   const getScoreText = (score: number) => {
-    if (score >= 8) return 'Ausgezeichnet';
-    if (score >= 6) return 'Gut';
+    if (score >= 8) return 'Excellent';
+    if (score >= 6) return 'Good';
     if (score >= 4) return 'Okay';
-    return 'Verbesserungsbedarf';
+    return 'Needs Improvement';
   };
 
   const MetricCard = ({ icon: Icon, title, value, description, color }: any) => (
@@ -82,7 +81,7 @@ const Analytics: React.FC = () => {
         </div>
         <div className="text-right">
           <div className="text-2xl font-bold text-gray-800">{value || 'N/A'}</div>
-          <div className="text-sm text-gray-500">von 10</div>
+          <div className="text-sm text-gray-500">out of 10</div>
         </div>
       </div>
       <h3 className="font-semibold text-gray-800 mb-1">{title}</h3>
@@ -115,48 +114,48 @@ const Analytics: React.FC = () => {
 
       {/* Current Metrics */}
       <div className="mx-4 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Aktuelle Werte</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Current Values</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <MetricCard
             icon={Brain}
             title="Stress Level"
             value={metrics?.stress_level}
-            description="Wie gestresst fühlst du dich?"
+            description="How stressed do you feel?"
             color="bg-gradient-to-r from-red-500 to-pink-500"
           />
           <MetricCard
             icon={Heart}
             title="Mood"
             value={metrics?.mood_score}
-            description="Deine allgemeine Stimmung"
+            description="Your overall mood"
             color="bg-gradient-to-r from-green-500 to-emerald-500"
           />
           <MetricCard
             icon={Moon}
             title="Sleep Quality"
             value={metrics?.sleep_quality}
-            description="Wie gut hast du geschlafen?"
+            description="How well did you sleep?"
             color="bg-gradient-to-r from-indigo-500 to-purple-500"
           />
           <MetricCard
             icon={Target}
-            title="Fokus"
+            title="Focus"
             value={metrics?.focus_level}
-            description="Deine Konzentrationsfähigkeit"
+            description="Your concentration ability"
             color="bg-gradient-to-r from-blue-500 to-cyan-500"
           />
           <MetricCard
             icon={Brain}
             title="Anxiety Level"
             value={metrics?.anxiety_level}
-            description="Wie ängstlich fühlst du dich?"
+            description="How anxious do you feel?"
             color="bg-gradient-to-r from-orange-500 to-red-500"
           />
           <MetricCard
             icon={Zap}
             title="Energy Level"
             value={metrics?.energy_level}
-            description="Dein Energielevel heute"
+            description="Your energy level today"
             color="bg-gradient-to-r from-yellow-500 to-orange-500"
           />
         </div>
@@ -171,7 +170,7 @@ const Analytics: React.FC = () => {
               {weeklyData.slice(0, 7).map((day, index) => (
                 <div key={index} className="flex items-center justify-between py-2">
                   <div className="text-sm text-gray-600">
-                    {new Date(day.created_at).toLocaleDateString('de-DE', { 
+                    {new Date(day.created_at).toLocaleDateString('en-US', { 
                       weekday: 'short', 
                       day: 'numeric', 
                       month: 'short' 
@@ -203,9 +202,9 @@ const Analytics: React.FC = () => {
         <div className="mx-4">
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 text-center">
             <div className="text-6xl mb-4">📈</div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Noch keine Daten</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">No data yet</h3>
             <p className="text-gray-600 mb-4">
-              Schließe deine erste Lektion ab, um deine Gesundheitswerte zu tracken.
+              Complete your first lesson to start tracking your health values.
             </p>
           </div>
         </div>

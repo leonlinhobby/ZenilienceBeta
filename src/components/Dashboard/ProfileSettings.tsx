@@ -38,10 +38,8 @@ const ProfileSettings: React.FC = () => {
         .from('user_profiles')
         .select('*')
         .eq('id', user?.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      
       if (data) {
         setProfile(data);
       }
@@ -65,10 +63,10 @@ const ProfileSettings: React.FC = () => {
 
       if (error) throw error;
       
-      alert('Profil erfolgreich gespeichert!');
+      alert('Profile saved successfully!');
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Fehler beim Speichern des Profils');
+      alert('Error saving profile');
     } finally {
       setSaving(false);
     }
@@ -84,8 +82,8 @@ const ProfileSettings: React.FC = () => {
   };
 
   const availableInterests = [
-    'Meditation', 'Yoga', 'Sport', 'Lesen', 'Musik', 'Natur',
-    'Kochen', 'Reisen', 'Kunst', 'Technologie', 'Fotografie', 'Schreiben'
+    'Meditation', 'Yoga', 'Sports', 'Reading', 'Music', 'Nature',
+    'Cooking', 'Travel', 'Art', 'Technology', 'Photography', 'Writing'
   ];
 
   if (loading) {
@@ -100,8 +98,8 @@ const ProfileSettings: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 pb-24">
       {/* Header */}
       <div className="text-center pt-8 pb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">👤 Profil</h1>
-        <p className="text-gray-600">Verwalte deine persönlichen Daten</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">👤 Profile</h1>
+        <p className="text-gray-600">Manage your personal information</p>
       </div>
 
       {/* Tab Navigation */}
@@ -117,7 +115,7 @@ const ProfileSettings: React.FC = () => {
               }`}
             >
               <User size={20} className="inline mr-2" />
-              Profil
+              Profile
             </button>
             <button
               onClick={() => setActiveTab('settings')}
@@ -128,7 +126,7 @@ const ProfileSettings: React.FC = () => {
               }`}
             >
               <Settings size={20} className="inline mr-2" />
-              Einstellungen
+              Settings
             </button>
           </div>
         </div>
@@ -138,73 +136,73 @@ const ProfileSettings: React.FC = () => {
       <div className="mx-4">
         {activeTab === 'profile' ? (
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">Persönliche Informationen</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-6">Personal Information</h2>
             
             <div className="space-y-6">
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vollständiger Name
+                  Full Name
                 </label>
                 <input
                   type="text"
                   value={profile.full_name}
                   onChange={(e) => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Dein Name"
+                  placeholder="Your name"
                 />
               </div>
 
               {/* Age */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alter
+                  Age
                 </label>
                 <input
                   type="number"
                   value={profile.age || ''}
                   onChange={(e) => setProfile(prev => ({ ...prev, age: parseInt(e.target.value) || 0 }))}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Dein Alter"
+                  placeholder="Your age"
                 />
               </div>
 
               {/* Gender */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Geschlecht
+                  Gender
                 </label>
                 <select
                   value={profile.gender}
                   onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Bitte wählen</option>
-                  <option value="male">Männlich</option>
-                  <option value="female">Weiblich</option>
-                  <option value="other">Divers</option>
-                  <option value="prefer_not_to_say">Keine Angabe</option>
+                  <option value="">Please select</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
                 </select>
               </div>
 
               {/* Occupation */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Beruf
+                  Occupation
                 </label>
                 <input
                   type="text"
                   value={profile.occupation}
                   onChange={(e) => setProfile(prev => ({ ...prev, occupation: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Dein Beruf"
+                  placeholder="Your occupation"
                 />
               </div>
 
               {/* Interests */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Interessen
+                  Interests
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {availableInterests.map((interest) => (
@@ -232,12 +230,12 @@ const ProfileSettings: React.FC = () => {
                 {saving ? (
                   <div className="flex items-center justify-center space-x-2">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Speichern...</span>
+                    <span>Saving...</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center space-x-2">
                     <Save size={20} />
-                    <span>Profil speichern</span>
+                    <span>Save Profile</span>
                   </div>
                 )}
               </button>
@@ -247,7 +245,7 @@ const ProfileSettings: React.FC = () => {
           <div className="space-y-6">
             {/* Subscription Info */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Abonnement</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Subscription</h2>
               <div className={`p-4 rounded-lg ${
                 profile.subscription_type === 'zenith' 
                   ? 'bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-200'
@@ -258,8 +256,8 @@ const ProfileSettings: React.FC = () => {
                 </h3>
                 <p className="text-gray-600 text-sm">
                   {profile.subscription_type === 'zenith' 
-                    ? 'Unbegrenzte Lektionen und Chat-Nachrichten'
-                    : 'Eine Lektion pro Tag, 5 Chat-Nachrichten täglich'
+                    ? 'Unlimited lessons and chat messages'
+                    : 'One lesson per day, 5 chat messages daily'
                   }
                 </p>
               </div>
@@ -270,7 +268,7 @@ const ProfileSettings: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Account</h2>
               <div className="space-y-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-medium text-gray-800 mb-1">E-Mail</h3>
+                  <h3 className="font-medium text-gray-800 mb-1">Email</h3>
                   <p className="text-gray-600">{user?.email}</p>
                 </div>
                 
@@ -280,7 +278,7 @@ const ProfileSettings: React.FC = () => {
                 >
                   <div className="flex items-center justify-center space-x-2">
                     <LogOut size={20} />
-                    <span>Abmelden</span>
+                    <span>Sign Out</span>
                   </div>
                 </button>
               </div>

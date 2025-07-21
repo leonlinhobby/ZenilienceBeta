@@ -80,7 +80,7 @@ const LessonModal: React.FC<LessonModalProps> = ({ lesson, onComplete, onClose }
         <div className="p-6">
           {/* Instruction */}
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-800 mb-2">Anleitung</h3>
+            <h3 className="font-semibold text-gray-800 mb-2">Instructions</h3>
             <p className="text-gray-600">{lesson.content.instruction}</p>
           </div>
 
@@ -109,7 +109,7 @@ const LessonModal: React.FC<LessonModalProps> = ({ lesson, onComplete, onClose }
 
           {/* Steps */}
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Schritte</h3>
+            <h3 className="font-semibold text-gray-800 mb-3">Steps</h3>
             <div className="space-y-3">
               {lesson.content.steps.map((step, index) => (
                 <div
@@ -134,14 +134,14 @@ const LessonModal: React.FC<LessonModalProps> = ({ lesson, onComplete, onClose }
                 onClick={() => setCurrentStep(currentStep + 1)}
                 className="mt-4 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
               >
-                Nächster Schritt
+                Next Step
               </button>
             )}
           </div>
 
           {/* Tips */}
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Tipps</h3>
+            <h3 className="font-semibold text-gray-800 mb-3">Tips</h3>
             <div className="space-y-2">
               {lesson.content.tips.map((tip, index) => (
                 <div key={index} className="flex items-start space-x-2">
@@ -165,10 +165,10 @@ const LessonModal: React.FC<LessonModalProps> = ({ lesson, onComplete, onClose }
             {isCompleted ? (
               <div className="flex items-center justify-center space-x-2">
                 <CheckCircle size={20} />
-                <span>Lektion abgeschlossen!</span>
+                <span>Lesson completed!</span>
               </div>
             ) : (
-              'Lektion abschließen'
+              'Complete Lesson'
             )}
           </button>
         </div>

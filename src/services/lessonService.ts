@@ -26,45 +26,45 @@ export const generateLessons = async (userId: string): Promise<void> => {
 
     // Generate lesson content using AI
     const lessonPrompt = `
-Du bist ein Experte für mentale Gesundheit und Wellness. Erstelle 5 personalisierte Lektionen für einen Nutzer mit folgenden Daten:
+You are a mental health and wellness expert. Create 5 personalized lessons for a user with the following data:
 
-Nutzer-Profil:
-- Name: ${profile?.full_name || 'Unbekannt'}
-- Alter: ${profile?.age || 'Unbekannt'}
-- Beruf: ${profile?.occupation || 'Unbekannt'}
-- Interessen: ${profile?.interests?.join(', ') || 'Unbekannt'}
+User Profile:
+- Name: ${profile?.full_name || 'Unknown'}
+- Age: ${profile?.age || 'Unknown'}
+- Occupation: ${profile?.occupation || 'Unknown'}
+- Interests: ${profile?.interests?.join(', ') || 'Unknown'}
 
-Aktuelle Metriken:
-- Aktuelle Serie: ${streaks?.current_streak || 0} Tage
-- Abgeschlossene Lektionen: ${streaks?.total_lessons_completed || 0}
-- Letzte Stress-Level: ${healthMetrics?.[0]?.stress_level || 'Unbekannt'}
-- Letzte Stimmung: ${healthMetrics?.[0]?.mood_score || 'Unbekannt'}
+Current Metrics:
+- Current Streak: ${streaks?.current_streak || 0} days
+- Completed Lessons: ${streaks?.total_lessons_completed || 0}
+- Last Stress Level: ${healthMetrics?.[0]?.stress_level || 'Unknown'}
+- Last Mood: ${healthMetrics?.[0]?.mood_score || 'Unknown'}
 
-Erstelle 5 Lektionen als JSON-Array mit dieser Struktur:
+Create 5 lessons as a JSON array with this structure:
 [
   {
-    "title": "Titel der Lektion",
-    "description": "Kurze Beschreibung",
+    "title": "Lesson Title",
+    "description": "Brief description",
     "lesson_type": "meditation|breathing|cbt|mindfulness|challenge|education",
     "content": {
-      "instruction": "Anweisung für den Nutzer",
-      "steps": ["Schritt 1", "Schritt 2", "Schritt 3"],
+      "instruction": "Instruction for the user",
+      "steps": ["Step 1", "Step 2", "Step 3"],
       "duration": 5,
-      "tips": ["Tipp 1", "Tipp 2"]
+      "tips": ["Tip 1", "Tip 2"]
     },
     "estimated_duration": 5,
     "difficulty_level": "beginner|intermediate|advanced"
   }
 ]
 
-Wichtig:
-- Alle Texte auf Deutsch
-- Personalisiert auf die Nutzerdaten
-- Verschiedene Lektionstypen
-- Praktisch und umsetzbar
-- Angepasst an Stress-Level und Stimmung
+Important:
+- All text in English
+- Personalized to user data
+- Various lesson types
+- Practical and actionable
+- Adapted to stress level and mood
 
-Antworte nur mit dem JSON-Array, keine weitere Erklärung.
+Respond only with the JSON array, no further explanation.
 `;
 
     const response = await sendMessageToDeepSeek(
@@ -74,7 +74,7 @@ Antworte nur mit dem JSON-Array, keine weitere Erklärung.
         temperature: 0.8,
         model: 'deepseek/deepseek-r1-0528',
         maxTokens: 2000,
-        systemPrompt: 'Du bist ein Experte für mentale Gesundheit und erstellst personalisierte Wellness-Lektionen.'
+        systemPrompt: 'You are a mental health expert creating personalized wellness lessons.'
       }
     );
 
@@ -86,66 +86,66 @@ Antworte nur mit dem JSON-Array, keine weitere Erklärung.
       // Fallback lessons
       lessons = [
         {
-          title: "Morgen-Meditation",
-          description: "Starte deinen Tag mit einer beruhigenden Meditation.",
+          title: "Morning Meditation",
+          description: "Start your day with a calming meditation.",
           lesson_type: "meditation",
           content: {
-            instruction: "Finde einen ruhigen Platz und setze dich bequem hin.",
-            steps: ["Schließe die Augen", "Atme tief ein und aus", "Konzentriere dich auf deinen Atem"],
+            instruction: "Find a quiet place and sit comfortably.",
+            steps: ["Close your eyes", "Breathe deeply in and out", "Focus on your breath"],
             duration: 5,
-            tips: ["Keine Sorge, wenn deine Gedanken abschweifen", "Kehre sanft zu deinem Atem zurück"]
+            tips: ["Don't worry if your thoughts wander", "Gently return to your breath"]
           },
           estimated_duration: 5,
           difficulty_level: "beginner"
         },
         {
-          title: "Atemübung 4-7-8",
-          description: "Eine einfache Atemtechnik zur Entspannung.",
+          title: "4-7-8 Breathing Exercise",
+          description: "A simple breathing technique for relaxation.",
           lesson_type: "breathing",
           content: {
-            instruction: "Atme nach dem 4-7-8 Rhythmus.",
-            steps: ["4 Sekunden einatmen", "7 Sekunden anhalten", "8 Sekunden ausatmen"],
+            instruction: "Breathe following the 4-7-8 rhythm.",
+            steps: ["Inhale for 4 seconds", "Hold for 7 seconds", "Exhale for 8 seconds"],
             duration: 5,
-            tips: ["Wiederhole 4-5 Zyklen", "Konzentriere dich nur auf das Zählen"]
+            tips: ["Repeat 4-5 cycles", "Focus only on counting"]
           },
           estimated_duration: 5,
           difficulty_level: "beginner"
         },
         {
-          title: "Gedanken-Check",
-          description: "Überprüfe und hinterfrage deine Gedanken.",
+          title: "Thought Check",
+          description: "Examine and question your thoughts.",
           lesson_type: "cbt",
           content: {
-            instruction: "Identifiziere einen belastenden Gedanken.",
-            steps: ["Schreibe den Gedanken auf", "Frage: Ist das wirklich wahr?", "Finde eine ausgewogenere Sichtweise"],
+            instruction: "Identify a troubling thought.",
+            steps: ["Write down the thought", "Ask: Is this really true?", "Find a more balanced perspective"],
             duration: 10,
-            tips: ["Sei geduldig mit dir", "Es ist normal, dass das Üben braucht"]
+            tips: ["Be patient with yourself", "It's normal that this takes practice"]
           },
           estimated_duration: 10,
           difficulty_level: "intermediate"
         },
         {
-          title: "Achtsamkeits-Spaziergang",
-          description: "Verbinde dich mit der Gegenwart während du gehst.",
+          title: "Mindful Walking",
+          description: "Connect with the present moment while walking.",
           lesson_type: "mindfulness",
           content: {
-            instruction: "Gehe langsam und bewusst.",
-            steps: ["Spüre deine Füße auf dem Boden", "Nimm Geräusche wahr", "Beobachte deine Umgebung"],
+            instruction: "Walk slowly and mindfully.",
+            steps: ["Feel your feet on the ground", "Notice sounds", "Observe your surroundings"],
             duration: 15,
-            tips: ["Kein Ziel haben", "Einfach nur da sein"]
+            tips: ["Have no destination", "Simply be present"]
           },
           estimated_duration: 15,
           difficulty_level: "beginner"
         },
         {
           title: "Digital Detox Challenge",
-          description: "Reduziere deine Bildschirmzeit für besseres Wohlbefinden.",
+          description: "Reduce your screen time for better wellbeing.",
           lesson_type: "challenge",
           content: {
-            instruction: "Vermeide für die nächsten 2 Stunden alle Bildschirme.",
-            steps: ["Handy stumm schalten", "Etwas anderes machen", "Reflektiere über die Erfahrung"],
+            instruction: "Avoid all screens for the next 2 hours.",
+            steps: ["Put phone on silent", "Do something else", "Reflect on the experience"],
             duration: 120,
-            tips: ["Bereite eine Alternative vor", "Teile anderen mit, dass du offline bist"]
+            tips: ["Prepare an alternative activity", "Tell others you'll be offline"]
           },
           estimated_duration: 120,
           difficulty_level: "intermediate"
