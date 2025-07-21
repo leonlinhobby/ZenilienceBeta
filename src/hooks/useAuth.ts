@@ -45,13 +45,17 @@ export const useAuth = () => {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
     });
     
+    if (authError) {
+      return { data, error: authError };
+    }
+    
     // If signup successful, create user profile
-    if (data.user && !error) {
+    if (data.user) {
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
@@ -64,10 +68,13 @@ export const useAuth = () => {
       
       if (profileError) {
         console.error('Error creating user profile:', profileError);
+        // If profile creation fails, sign out the user to prevent orphaned auth records
+        await supabase.auth.signOut();
+        return { data: null, error: profileError };
       }
       
       // Create default user settings
-      await supabase
+      const { error: settingsError } = await supabase
         .from('user_settings')
         .insert({
           user_id: data.user.id,
@@ -77,8 +84,14 @@ export const useAuth = () => {
           theme: 'light'
         });
       
+      if (settingsError) {
+        console.error('Error creating user settings:', settingsError);
+        await supabase.auth.signOut();
+        return { data: null, error: settingsError };
+      }
+      
       // Create default user streak
-      await supabase
+      const { error: streakError } = await supabase
         .from('user_streaks')
         .insert({
           user_id: data.user.id,
@@ -88,9 +101,15 @@ export const useAuth = () => {
           total_lessons_completed: 0,
           streak_freeze_used: false
         });
+      
+      if (streakError) {
+        console.error('Error creating user streak:', streakError);
+        await supabase.auth.signOut();
+        return { data: null, error: streakError };
+      }
     }
     
-    return { data, error };
+    return { data, error: authError };
   };
 
   const signIn = async (email: string, password: string) => {
