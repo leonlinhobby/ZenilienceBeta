@@ -138,17 +138,44 @@ export const useAuth = () => {
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
+      console.log('Starting signup process for:', email);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase signup error:', error);
+        throw error;
+      }
       
-      console.log('Signup successful:', data.user?.id);
+      if (data.user) {
+        console.log('Signup successful for user:', data.user.id);
+        
+        // Wait a moment for the database trigger to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verify the user profile was created
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('id', data.user.id)
+          .maybeSingle();
+          
+        if (profileError) {
+          console.error('Error checking profile after signup:', profileError);
+        } else if (!profile) {
+          console.log('Profile not found after signup, creating manually...');
+          await ensureUserProfile(data.user);
+        } else {
+          console.log('Profile created successfully by trigger');
+        }
+      }
+      
       return { data, error: null };
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('Signup error:', error.message || error);
       return { data: null, error };
     } finally {
       setLoading(false);
