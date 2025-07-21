@@ -61,14 +61,20 @@ const ZenoChat: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('user_profiles')
         .select('subscription_type')
         .eq('id', user?.id)
         .maybeSingle();
 
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
       if (data) {
         setProfile(data);
+        console.log('Profile loaded for chat:', data.subscription_type);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -86,8 +92,13 @@ const ZenoChat: React.FC = () => {
         .gte('created_at', today + 'T00:00:00.000Z')
         .lt('created_at', today + 'T23:59:59.999Z');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching daily message count:', error);
+        return;
+      }
+
       setDailyMessages(data?.length || 0);
+      console.log('Daily messages used:', data?.length || 0);
     } catch (error) {
       console.error('Error fetching daily message count:', error);
     }
@@ -100,11 +111,16 @@ const ZenoChat: React.FC = () => {
 
   const fetchUserSettings = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('user_settings')
         .select('chat_personality')
         .eq('user_id', user?.id)
         .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching settings:', error);
+        return;
+      }
 
       if (data) {
         setPersonality(data.chat_personality);
@@ -122,8 +138,13 @@ const ZenoChat: React.FC = () => {
         .eq('user_id', user?.id)
         .order('last_message_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching sessions:', error);
+        return;
+      }
+
       setSessions(data || []);
+      console.log('Chat sessions loaded:', data?.length || 0);
       
       if (data && data.length > 0 && !currentSession) {
         setCurrentSession(data[0]);
@@ -143,8 +164,13 @@ const ZenoChat: React.FC = () => {
         .eq('session_id', currentSession.id)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return;
+      }
+
       setMessages(data || []);
+      console.log('Messages loaded for session:', data?.length || 0);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
@@ -152,6 +178,7 @@ const ZenoChat: React.FC = () => {
 
   const createNewSession = async () => {
     try {
+      console.log('Creating new chat session...');
       const { data, error } = await supabase
         .from('chat_sessions')
         .insert({
@@ -161,8 +188,12 @@ const ZenoChat: React.FC = () => {
         .select()
         .single();
 
-      if (error) throw error;
-      
+      if (error) {
+        console.error('Error creating session:', error);
+        return;
+      }
+
+      console.log('New session created:', data.id);
       setSessions(prev => [data, ...prev]);
       setCurrentSession(data);
       setMessages([]);
@@ -174,12 +205,18 @@ const ZenoChat: React.FC = () => {
 
   const updatePersonality = async (newPersonality: 'friendly' | 'professional') => {
     try {
-      await supabase
+      const { error } = await supabase
         .from('user_settings')
         .update({ chat_personality: newPersonality })
         .eq('user_id', user?.id);
 
+      if (error) {
+        console.error('Error updating personality:', error);
+        return;
+      }
+
       setPersonality(newPersonality);
+      console.log('Personality updated to:', newPersonality);
     } catch (error) {
       console.error('Error updating personality:', error);
     }
@@ -193,6 +230,8 @@ const ZenoChat: React.FC = () => {
     setIsLoading(true);
 
     try {
+      console.log('Sending message:', userMessage);
+
       // Add user message to UI
       const newUserMessage = {
         id: Date.now().toString(),
@@ -203,7 +242,7 @@ const ZenoChat: React.FC = () => {
       setMessages(prev => [...prev, newUserMessage]);
 
       // Save user message to database
-      await supabase
+      const { error: userMessageError } = await supabase
         .from('chat_messages')
         .insert({
           session_id: currentSession.id,
@@ -212,10 +251,14 @@ const ZenoChat: React.FC = () => {
           role: 'user'
         });
 
+      if (userMessageError) {
+        console.error('Error saving user message:', userMessageError);
+      }
+
       // Get AI response
       const systemPrompt = personality === 'friendly' 
-        ? 'You are Zeno, a friendly and empathetic mental health companion. Respond briefly (1-2 sentences), warmly and supportively. Use no formatting like **bold** or _italic_.'
-        : 'You are Zeno, a professional psychologist and therapist. Respond briefly (1-2 sentences), factually and helpfully. Use no formatting like **bold** or _italic_.';
+        ? 'You are Zeno, a friendly and empathetic mental health companion for Zenilience. Respond warmly and supportively in 1-2 sentences. Focus on wellness, mindfulness, and emotional support. Use no formatting like **bold** or _italic_.'
+        : 'You are Zeno, a professional psychologist and therapist for Zenilience. Respond professionally and helpfully in 1-2 sentences. Provide evidence-based mental health guidance. Use no formatting like **bold** or _italic_.';
 
       const response = await sendMessageToDeepSeek(
         userMessage,
@@ -229,6 +272,7 @@ const ZenoChat: React.FC = () => {
       );
 
       const aiResponse = response.choices[0].message.content;
+      console.log('AI response received');
 
       // Add AI response to UI
       const newAiMessage = {
@@ -240,7 +284,7 @@ const ZenoChat: React.FC = () => {
       setMessages(prev => [...prev, newAiMessage]);
 
       // Save AI message to database
-      await supabase
+      const { error: aiMessageError } = await supabase
         .from('chat_messages')
         .insert({
           session_id: currentSession.id,
@@ -249,8 +293,12 @@ const ZenoChat: React.FC = () => {
           role: 'assistant'
         });
 
+      if (aiMessageError) {
+        console.error('Error saving AI message:', aiMessageError);
+      }
+
       // Update session
-      await supabase
+      const { error: sessionError } = await supabase
         .from('chat_sessions')
         .update({
           last_message_at: new Date().toISOString(),
@@ -259,13 +307,33 @@ const ZenoChat: React.FC = () => {
         })
         .eq('id', currentSession.id);
 
+      if (sessionError) {
+        console.error('Error updating session:', sessionError);
+      }
+
       // Update daily message count
       setDailyMessages(prev => prev + 1);
 
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Add error message to UI
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        content: "I'm sorry, I encountered an error. Please try again.",
+        role: 'assistant' as const,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
@@ -341,7 +409,8 @@ const ZenoChat: React.FC = () => {
                   personality === 'friendly' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
                 }`}
               >
-                Friendly
+                <div className="font-medium">Friendly</div>
+                <div className="text-xs text-gray-600">Warm and empathetic responses</div>
               </button>
               <button
                 onClick={() => updatePersonality('professional')}
@@ -349,7 +418,8 @@ const ZenoChat: React.FC = () => {
                   personality === 'professional' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
                 }`}
               >
-                Professional
+                <div className="font-medium">Professional</div>
+                <div className="text-xs text-gray-600">Clinical and evidence-based guidance</div>
               </button>
             </div>
           </div>
@@ -361,6 +431,7 @@ const ZenoChat: React.FC = () => {
             <div className="p-4 text-center text-gray-500">
               <MessageCircle size={48} className="mx-auto mb-2 opacity-50" />
               <p>No chats yet</p>
+              <p className="text-sm">Start a conversation with Zeno!</p>
             </div>
           ) : (
             <div className="p-2">
@@ -403,7 +474,7 @@ const ZenoChat: React.FC = () => {
               <div>
                 <h2 className="font-semibold text-gray-800">{currentSession.title}</h2>
                 <p className="text-sm text-gray-500">
-                  {personality === 'friendly' ? 'Friendly Mode' : 'Professional Mode'}
+                  {personality === 'friendly' ? 'Friendly & Empathetic' : 'Professional & Clinical'}
                 </p>
               </div>
             </div>
@@ -414,10 +485,10 @@ const ZenoChat: React.FC = () => {
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">🤖</div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">Hello! I'm Zeno</h3>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 max-w-md mx-auto">
                     {personality === 'friendly' 
-                      ? 'I\'m here to help and listen. How are you feeling today?'
-                      : 'I\'m your professional mental health companion. How can I help you today?'
+                      ? 'I\'m here to support you on your wellness journey. How are you feeling today?'
+                      : 'I\'m your professional mental health companion. How can I help you achieve better mental wellness today?'
                     }
                   </p>
                 </div>
@@ -457,13 +528,20 @@ const ZenoChat: React.FC = () => {
 
             {/* Input */}
             <div className="p-4 border-t border-gray-200 bg-white">
+              {!canSendMessage() && (
+                <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-800 text-sm">
+                    You've reached your daily limit of 5 messages. Upgrade to Zenith for unlimited chat!
+                  </p>
+                </div>
+              )}
               <div className="flex space-x-2">
                 <input
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder={canSendMessage() ? "Write a message..." : "Daily limit reached"}
+                  onKeyPress={handleKeyPress}
+                  placeholder={canSendMessage() ? "Ask Zeno anything about wellness..." : "Daily limit reached"}
                   className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   disabled={isLoading || !canSendMessage()}
                 />
@@ -487,8 +565,14 @@ const ZenoChat: React.FC = () => {
                 <Menu size={24} />
               </button>
               <MessageCircle size={64} className="mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Select a chat</h3>
-              <p className="text-gray-600">Or create a new chat to get started.</p>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Welcome to Zeno Chat</h3>
+              <p className="text-gray-600 mb-4">Select a chat or create a new one to get started.</p>
+              <button
+                onClick={createNewSession}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg py-2 px-6 hover:shadow-lg transition-all duration-300"
+              >
+                Start New Chat
+              </button>
             </div>
           </div>
         )}

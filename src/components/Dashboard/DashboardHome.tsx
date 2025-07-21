@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { Play, Clock, Star, Flame, Lock } from 'lucide-react';
+import { Play, Clock, Star, Flame, Lock, CheckCircle } from 'lucide-react';
 import LessonModal from './LessonModal';
 
 interface Lesson {
@@ -41,6 +41,7 @@ const DashboardHome: React.FC = () => {
 
   const initializeDashboard = async () => {
     try {
+      console.log('Initializing dashboard for user:', user?.id);
       await Promise.all([
         fetchProfile(),
         fetchStreak(),
@@ -62,8 +63,14 @@ const DashboardHome: React.FC = () => {
         .eq('id', user?.id)
         .maybeSingle();
 
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
       if (data) {
         setProfile(data);
+        console.log('Profile loaded:', data.subscription_type);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -80,8 +87,14 @@ const DashboardHome: React.FC = () => {
         .eq('date', today)
         .maybeSingle();
 
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching daily progress:', error);
+        return;
+      }
+
       if (data) {
         setDailyLessonsCompleted(data.completed_sessions || 0);
+        console.log('Daily progress loaded:', data.completed_sessions);
       }
     } catch (error) {
       console.error('Error fetching daily progress:', error);
@@ -90,6 +103,7 @@ const DashboardHome: React.FC = () => {
 
   const fetchLessons = async () => {
     try {
+      console.log('Fetching lessons for user:', user?.id);
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
@@ -98,11 +112,18 @@ const DashboardHome: React.FC = () => {
         .order('position_in_queue')
         .limit(5);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching lessons:', error);
+        // Generate default lessons if none exist
+        await generateDefaultLessons();
+        return;
+      }
       
       if (!data || data.length === 0) {
+        console.log('No lessons found, generating default lessons...');
         await generateDefaultLessons();
       } else {
+        console.log('Lessons loaded:', data.length);
         setLessons(data);
       }
     } catch (error) {
@@ -119,8 +140,14 @@ const DashboardHome: React.FC = () => {
         .eq('user_id', user?.id)
         .maybeSingle();
 
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching streak:', error);
+        return;
+      }
+
       if (data) {
         setStreak(data);
+        console.log('Streak loaded:', data.current_streak);
       }
     } catch (error) {
       console.error('Error fetching streak:', error);
@@ -136,10 +163,20 @@ const DashboardHome: React.FC = () => {
         estimated_duration: 5,
         difficulty_level: "beginner",
         content: {
-          instruction: "Find a quiet place and sit comfortably.",
-          steps: ["Close your eyes", "Breathe deeply in and out", "Focus on your breath"],
+          instruction: "Find a quiet place and sit comfortably. Close your eyes and focus on your breath.",
+          steps: [
+            "Sit in a comfortable position with your back straight",
+            "Close your eyes gently and take a deep breath",
+            "Focus on the sensation of breathing in and out",
+            "When your mind wanders, gently return to your breath",
+            "Continue for 5 minutes, breathing naturally"
+          ],
           duration: 5,
-          tips: ["Don't worry if your thoughts wander", "Gently return to your breath"]
+          tips: [
+            "Don't worry if your thoughts wander - this is normal",
+            "Gently return your attention to your breath",
+            "Start with shorter sessions if 5 minutes feels too long"
+          ]
         }
       },
       {
@@ -149,54 +186,98 @@ const DashboardHome: React.FC = () => {
         estimated_duration: 5,
         difficulty_level: "beginner",
         content: {
-          instruction: "Breathe following the proven 4-7-8 rhythm.",
-          steps: ["Inhale for 4 seconds", "Hold for 7 seconds", "Exhale for 8 seconds"],
+          instruction: "This breathing pattern helps activate your body's relaxation response.",
+          steps: [
+            "Exhale completely through your mouth",
+            "Close your mouth and inhale through your nose for 4 counts",
+            "Hold your breath for 7 counts",
+            "Exhale through your mouth for 8 counts",
+            "Repeat this cycle 3-4 times"
+          ],
           duration: 5,
-          tips: ["Repeat 4-5 cycles", "Focus only on counting"]
+          tips: [
+            "Keep the ratio 4:7:8, but adjust the speed to your comfort",
+            "Practice regularly for best results",
+            "Stop if you feel dizzy and breathe normally"
+          ]
         }
       },
       {
-        title: "Thought Check",
-        description: "Learn to recognize and change your thought patterns",
+        title: "Thought Challenge",
+        description: "Learn to recognize and reframe negative thought patterns",
         lesson_type: "cbt",
         estimated_duration: 10,
         difficulty_level: "intermediate",
         content: {
-          instruction: "Identify a troubling thought from today.",
-          steps: ["Write down the thought", "Ask: Is this really true?", "Find a more balanced perspective"],
+          instruction: "Identify a negative thought and examine it objectively.",
+          steps: [
+            "Think of a recent situation that caused you stress",
+            "Write down the exact thought you had",
+            "Ask yourself: Is this thought realistic?",
+            "Look for evidence for and against this thought",
+            "Create a more balanced, realistic thought",
+            "Notice how this new thought makes you feel"
+          ],
           duration: 10,
-          tips: ["Be patient with yourself", "It's normal that this takes practice"]
+          tips: [
+            "Be patient with yourself - this takes practice",
+            "Look for thinking patterns like all-or-nothing thinking",
+            "Focus on facts rather than assumptions"
+          ]
         }
       },
       {
         title: "Mindful Walking",
-        description: "Connect with the present moment",
+        description: "Connect with the present moment through mindful movement",
         lesson_type: "mindfulness",
         estimated_duration: 15,
         difficulty_level: "beginner",
         content: {
-          instruction: "Walk slowly and mindfully for 15 minutes.",
-          steps: ["Feel your feet on the ground", "Notice sounds consciously", "Observe your surroundings without judgment"],
+          instruction: "Walk slowly and pay attention to each step and sensation.",
+          steps: [
+            "Find a quiet place to walk, indoors or outdoors",
+            "Start walking very slowly, slower than normal",
+            "Feel your feet touching the ground with each step",
+            "Notice the movement of your legs and body",
+            "Pay attention to sounds, smells, and sights around you",
+            "When your mind wanders, gently return to the walking"
+          ],
           duration: 15,
-          tips: ["Have no destination", "Simply be present"]
+          tips: [
+            "There's no destination - the walking itself is the practice",
+            "If outdoors, notice nature around you",
+            "You can do this anywhere, even in a small space"
+          ]
         }
       },
       {
-        title: "Digital Detox Challenge",
-        description: "Reduce your screen time for better wellbeing",
-        lesson_type: "challenge",
-        estimated_duration: 120,
-        difficulty_level: "intermediate",
+        title: "Gratitude Practice",
+        description: "Cultivate appreciation and positive emotions",
+        lesson_type: "education",
+        estimated_duration: 10,
+        difficulty_level: "beginner",
         content: {
-          instruction: "Avoid all screens for the next 2 hours.",
-          steps: ["Put phone on silent", "Do something else (read, walk, cook)", "Reflect on the experience"],
-          duration: 120,
-          tips: ["Prepare an alternative activity", "Tell others you'll be offline"]
+          instruction: "Reflect on things you're grateful for in your life.",
+          steps: [
+            "Find a comfortable, quiet place to sit",
+            "Think of three things you're grateful for today",
+            "For each item, spend time really feeling the gratitude",
+            "Consider why you're grateful for each thing",
+            "Notice how focusing on gratitude makes you feel",
+            "Write these down if you'd like to remember them"
+          ],
+          duration: 10,
+          tips: [
+            "Start small - even simple things like a warm cup of coffee count",
+            "Try to feel the emotion, not just think the thoughts",
+            "Make this a daily practice for best results"
+          ]
         }
       }
     ];
 
     try {
+      console.log('Generating default lessons...');
       const lessonsToInsert = defaultLessons.map((lesson, index) => ({
         user_id: user?.id,
         title: lesson.title,
@@ -213,7 +294,12 @@ const DashboardHome: React.FC = () => {
         .insert(lessonsToInsert)
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error generating lessons:', error);
+        return;
+      }
+
+      console.log('Default lessons created:', data?.length);
       setLessons(data || []);
     } catch (error) {
       console.error('Error generating lessons:', error);
@@ -227,11 +313,21 @@ const DashboardHome: React.FC = () => {
 
   const completeLesson = async (lessonId: string) => {
     try {
+      console.log('Completing lesson:', lessonId);
+      
       // Mark lesson as completed
-      await supabase
+      const { error: lessonError } = await supabase
         .from('lessons')
-        .update({ is_completed: true, completed_at: new Date().toISOString() })
+        .update({ 
+          is_completed: true, 
+          completed_at: new Date().toISOString() 
+        })
         .eq('id', lessonId);
+
+      if (lessonError) {
+        console.error('Error completing lesson:', lessonError);
+        return;
+      }
 
       // Update or create daily progress
       const today = new Date().toISOString().split('T')[0];
@@ -261,27 +357,11 @@ const DashboardHome: React.FC = () => {
           });
       }
 
-      // Update streak
-      const { data: currentStreak } = await supabase
-        .from('user_streaks')
-        .select('*')
-        .eq('user_id', user?.id)
-        .maybeSingle();
+      // Update streak using the database function
+      await supabase.rpc('update_user_streak', { user_uuid: user?.id });
 
-      if (currentStreak) {
-        const newStreak = currentStreak.current_streak + 1;
-        await supabase
-          .from('user_streaks')
-          .update({
-            current_streak: newStreak,
-            longest_streak: Math.max(newStreak, currentStreak.longest_streak),
-            zen_garden_points: currentStreak.zen_garden_points + 10,
-            total_lessons_completed: currentStreak.total_lessons_completed + 1,
-            last_activity_date: today
-          })
-          .eq('user_id', user?.id);
-      }
-
+      console.log('Lesson completed successfully');
+      
       // Refresh data
       await initializeDashboard();
       setSelectedLesson(null);
@@ -306,6 +386,7 @@ const DashboardHome: React.FC = () => {
       case 'cbt': return '🧠';
       case 'mindfulness': return '🌸';
       case 'challenge': return '🎯';
+      case 'education': return '📚';
       default: return '✨';
     }
   };
@@ -315,7 +396,7 @@ const DashboardHome: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your dashboard...</p>
+          <p className="text-gray-600">Loading your wellness dashboard...</p>
         </div>
       </div>
     );
@@ -333,7 +414,7 @@ const DashboardHome: React.FC = () => {
           />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Zenilience</h1>
         </div>
-        <p className="text-sm sm:text-base text-gray-600">Welcome back! Ready for today's journey?</p>
+        <p className="text-sm sm:text-base text-gray-600">Welcome back! Ready for today's wellness journey?</p>
       </div>
 
       {/* Streak Section */}
@@ -381,7 +462,7 @@ const DashboardHome: React.FC = () => {
 
       {/* Lessons Section */}
       <div className="mx-4 pb-4">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Your Lessons</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Your Wellness Lessons</h2>
         <div className="space-y-3 sm:space-y-4">
           {lessons.map((lesson, index) => (
             <div
@@ -424,6 +505,16 @@ const DashboardHome: React.FC = () => {
             </div>
           ))}
         </div>
+
+        {lessons.length === 0 && !loading && (
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 text-center">
+            <div className="text-6xl mb-4">🌱</div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Getting your lessons ready...</h3>
+            <p className="text-gray-600">
+              We're preparing personalized wellness lessons for you. Please refresh the page in a moment.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Lesson Modal */}

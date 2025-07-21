@@ -12,6 +12,8 @@ export const useAuth = () => {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Session error:', error);
+        // Clear any corrupted session data
+        localStorage.removeItem('supabase.auth.token');
         setSession(null);
         setUser(null);
       } else {
@@ -27,8 +29,16 @@ export const useAuth = () => {
         console.log('Auth event:', event, session?.user?.id);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // Ensure user profile exists when signing in
-          await ensureUserProfile(session.user);
+          console.log('User signed in, checking profile...');
+          // The database trigger should handle profile creation automatically
+          // But let's verify it exists
+          await verifyUserProfile(session.user);
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing data...');
+          // Clear any cached data
+          localStorage.removeItem('supabase.auth.token');
         }
         
         setSession(session);
@@ -40,20 +50,26 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const ensureUserProfile = async (user: User) => {
+  const verifyUserProfile = async (user: User) => {
     try {
+      console.log('Verifying profile for user:', user.id);
+      
       // Check if profile exists
-      const { data: existingProfile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('id')
         .eq('id', user.id)
         .maybeSingle();
 
-      if (!existingProfile) {
-        console.log('Creating user profile for:', user.id);
-        
-        // Create user profile
-        const { error: profileError } = await supabase
+      if (profileError) {
+        console.error('Error checking profile:', profileError);
+        return;
+      }
+
+      if (!profile) {
+        console.log('Profile not found, creating...');
+        // Profile should be created by trigger, but create manually if needed
+        const { error: createError } = await supabase
           .from('user_profiles')
           .insert({
             id: user.id,
@@ -63,13 +79,25 @@ export const useAuth = () => {
             updated_at: new Date().toISOString()
           });
 
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          throw profileError;
+        if (createError) {
+          console.error('Error creating profile:', createError);
+        } else {
+          console.log('Profile created successfully');
         }
+      } else {
+        console.log('Profile exists');
+      }
 
-        // Create user settings
-        const { error: settingsError } = await supabase
+      // Verify settings exist
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!settings) {
+        console.log('Creating user settings...');
+        await supabase
           .from('user_settings')
           .insert({
             user_id: user.id,
@@ -78,13 +106,18 @@ export const useAuth = () => {
             notifications_enabled: true,
             theme: 'light'
           });
+      }
 
-        if (settingsError) {
-          console.error('Error creating settings:', settingsError);
-        }
+      // Verify streaks exist
+      const { data: streaks } = await supabase
+        .from('user_streaks')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        // Create user streaks
-        const { error: streakError } = await supabase
+      if (!streaks) {
+        console.log('Creating user streaks...');
+        await supabase
           .from('user_streaks')
           .insert({
             user_id: user.id,
@@ -94,20 +127,17 @@ export const useAuth = () => {
             total_lessons_completed: 0,
             streak_freeze_used: false
           });
-
-        if (streakError) {
-          console.error('Error creating streak:', streakError);
-        }
-
-        console.log('User profile setup completed');
       }
+
+      console.log('Profile verification completed');
     } catch (error) {
-      console.error('Error ensuring user profile:', error);
+      console.error('Error verifying user profile:', error);
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -115,16 +145,19 @@ export const useAuth = () => {
       
       if (error) throw error;
       
-      // Profile will be created in the auth state change handler
+      console.log('Signup successful:', data.user?.id);
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
       return { data: null, error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -132,18 +165,38 @@ export const useAuth = () => {
       
       if (error) throw error;
       
+      console.log('Signin successful:', data.user?.id);
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signin error:', error);
+      
+      // Handle specific auth errors
+      if (error.message?.includes('Invalid Refresh Token') || error.message?.includes('refresh_token_not_found')) {
+        console.log('Clearing corrupted session...');
+        localStorage.removeItem('supabase.auth.token');
+        await supabase.auth.signOut();
+      }
+      
       return { data: null, error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
-    setSession(null);
-    setUser(null);
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      setLoading(true);
+      localStorage.removeItem('supabase.auth.token');
+      setSession(null);
+      setUser(null);
+      const { error } = await supabase.auth.signOut();
+      return { error };
+    } catch (error) {
+      console.error('Signout error:', error);
+      return { error };
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
