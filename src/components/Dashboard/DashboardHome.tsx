@@ -63,11 +63,6 @@ const DashboardHome: React.FC = () => {
         .eq('id', user?.id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
       if (data) {
         setProfile(data);
         console.log('Profile loaded:', data.subscription_type);
@@ -86,11 +81,6 @@ const DashboardHome: React.FC = () => {
         .eq('user_id', user?.id)
         .eq('date', today)
         .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching daily progress:', error);
-        return;
-      }
 
       if (data) {
         setDailyLessonsCompleted(data.completed_sessions || 0);
@@ -114,7 +104,6 @@ const DashboardHome: React.FC = () => {
 
       if (error) {
         console.error('Error fetching lessons:', error);
-        // Generate default lessons if none exist
         await generateDefaultLessons();
         return;
       }
@@ -139,11 +128,6 @@ const DashboardHome: React.FC = () => {
         .select('*')
         .eq('user_id', user?.id)
         .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching streak:', error);
-        return;
-      }
 
       if (data) {
         setStreak(data);
@@ -357,7 +341,7 @@ const DashboardHome: React.FC = () => {
           });
       }
 
-      // Update streak using the database function
+      // Update streak
       await supabase.rpc('update_user_streak', { user_uuid: user?.id });
 
       console.log('Lesson completed successfully');
