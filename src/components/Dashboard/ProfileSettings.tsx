@@ -287,6 +287,79 @@ const ProfileSettings: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Chat Settings */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                <Settings size={20} className="mr-2" />
+                Chat Settings
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chat Personality
+                  </label>
+                  <select
+                    value={userSettings.chat_personality}
+                    onChange={(e) => setUserSettings(prev => ({ ...prev, chat_personality: e.target.value as 'friendly' | 'professional' }))}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="friendly">Friendly & Empathetic</option>
+                    <option value="professional">Professional & Clinical</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Bell size={16} className="inline mr-1" />
+                    Notifications
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={userSettings.notifications_enabled}
+                      onChange={(e) => setUserSettings(prev => ({ ...prev, notifications_enabled: e.target.checked }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-gray-700">Enable push notifications</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Palette size={16} className="inline mr-1" />
+                    Theme
+                  </label>
+                  <select
+                    value={userSettings.theme}
+                    onChange={(e) => setUserSettings(prev => ({ ...prev, theme: e.target.value as 'light' | 'dark' }))}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="light">Light Mode</option>
+                    <option value="dark">Dark Mode</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={saveSettings}
+                disabled={saving}
+                className="w-full mt-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Saving...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center space-x-2">
+                    <Save size={20} />
+                    <span>Save Settings</span>
+                  </div>
+                )}
+              </button>
+            </div>
+
             {/* Subscription Info */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Subscription</h2>
