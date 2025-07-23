@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { User, Settings, Save, LogOut } from 'lucide-react';
+import { User, Settings, Save, LogOut, Bell, Palette } from 'lucide-react';
 
 interface UserProfile {
   full_name: string;
@@ -21,6 +21,12 @@ const ProfileSettings: React.FC = () => {
     occupation: '',
     interests: [],
     subscription_type: 'explorer'
+  });
+  const [userSettings, setUserSettings] = useState({
+    chat_personality: 'friendly',
+    daily_lesson_limit: 1,
+    notifications_enabled: true,
+    theme: 'light'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -50,6 +56,22 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
+  const fetchUserSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (data) {
+        setUserSettings(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user settings:', error);
+    }
+  };
+
   const saveProfile = async () => {
     setSaving(true);
     try {
@@ -67,6 +89,28 @@ const ProfileSettings: React.FC = () => {
     } catch (error) {
       console.error('Error saving profile:', error);
       alert('Error saving profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .update({
+          ...userSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      
+      alert('Settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Error saving settings');
     } finally {
       setSaving(false);
     }

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Lesson } from '../types/dashboard';
-import { sendMessageToDeepSeek } from '../components/ChatBot/api';
+import { sendMessageToGemini } from '../components/ChatBot/geminiApi';
 
 export const generateLessons = async (userId: string): Promise<void> => {
   try {
@@ -72,7 +72,7 @@ Respond only with the JSON array, no further explanation.
       [],
       {
         temperature: 0.8,
-        model: 'deepseek/deepseek-r1-0528',
+        model: 'gemini-2.0-flash-exp',
         maxTokens: 2000,
         systemPrompt: 'You are a mental health expert creating personalized wellness lessons.'
       }
@@ -80,7 +80,7 @@ Respond only with the JSON array, no further explanation.
 
     let lessons: any[];
     try {
-      lessons = JSON.parse(response.choices[0].message.content);
+      lessons = JSON.parse(response.candidates[0].content.parts[0].text);
     } catch (error) {
       console.error('Error parsing AI response:', error);
       // Fallback lessons

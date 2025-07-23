@@ -25,3 +25,16 @@ export interface DeepSeekResponse {
     total_tokens: number;
   };
 }
+
+export interface GeminiResponse {
+  candidates: {
+    content: {
+      parts: { text: string }[];
+    };
+  }[];
+  usageMetadata: {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    totalTokenCount: number;
+  };
+}

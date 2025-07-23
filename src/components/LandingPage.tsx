@@ -6,6 +6,7 @@ import Features from './Features';
 import SocialProof from './SocialProof';
 import Pricing from './Pricing';
 import Footer from './Footer';
+import ChatBot from './ChatBot/ChatBot';
 
 const LandingPage: React.FC = () => {
   return (
@@ -16,6 +17,7 @@ const LandingPage: React.FC = () => {
       <SocialProof />
       <Pricing />
       <Footer />
+      <ChatBot />
     </div>
   );
 };

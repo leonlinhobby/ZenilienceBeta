@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Settings, Send, Loader2, Bot, User, RotateCcw } from 'lucide-react';
 import { ChatMessage, ChatSettings, DeepSeekResponse } from './types';
 import { getChatHistory, saveChatHistory, getChatSettings, saveChatSettings } from './storage';
-import { sendMessageToDeepSeek } from './api';
+import { sendMessageToGemini } from './geminiApi';
 import { ZENILIENCE_CONTEXT } from './context';
 import SettingsPanel from './SettingsPanel';
 
@@ -14,9 +14,9 @@ const ChatBot: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<ChatSettings>({
     temperature: 0.7,
-    model: 'deepseek/deepseek-r1-0528',
+    model: 'gemini-2.0-flash-exp',
     maxTokens: 1000,
-    systemPrompt: `You are ZenoHelp, a helpful assistant for Zenilience. ${ZENILIENCE_CONTEXT}`
+    systemPrompt: `You are Zeno, a helpful wellness assistant for Zenilience. ${ZENILIENCE_CONTEXT}`
   });
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -73,12 +73,12 @@ const ChatBot: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await sendMessageToDeepSeek(input.trim(), messages, settings);
+      const response = await sendMessageToGemini(input.trim(), messages, settings);
       
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: response.choices[0].message.content,
+        content: response.candidates[0].content.parts[0].text,
         timestamp: new Date()
       };
 

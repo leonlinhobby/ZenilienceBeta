@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { sendMessageToDeepSeek } from '../ChatBot/api';
+import { sendMessageToGemini } from '../ChatBot/geminiApi';
 import { Send, Plus, Settings, MessageCircle, Lock, Menu, X } from 'lucide-react';
 
 interface ChatMessage {
@@ -260,18 +260,18 @@ const ZenoChat: React.FC = () => {
         ? 'You are Zeno, a friendly and empathetic mental health companion for Zenilience. Respond warmly and supportively in 1-2 sentences. Focus on wellness, mindfulness, and emotional support. Use no formatting like **bold** or _italic_.'
         : 'You are Zeno, a professional psychologist and therapist for Zenilience. Respond professionally and helpfully in 1-2 sentences. Provide evidence-based mental health guidance. Use no formatting like **bold** or _italic_.';
 
-      const response = await sendMessageToDeepSeek(
+      const response = await sendMessageToGemini(
         userMessage,
         messages.map(m => ({ type: m.role, content: m.content })),
         {
           temperature: 0.7,
-          model: 'deepseek/deepseek-r1-0528',
+          model: 'gemini-2.0-flash-exp',
           maxTokens: 150,
           systemPrompt
         }
       );
 
-      const aiResponse = response.choices[0].message.content;
+      const aiResponse = response.candidates[0].content.parts[0].text;
       console.log('AI response received');
 
       // Add AI response to UI

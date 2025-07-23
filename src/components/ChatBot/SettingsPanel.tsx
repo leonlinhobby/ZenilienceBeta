@@ -54,8 +54,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onSettingsChang
             onChange={(e) => handleChange('model', e.target.value)}
             className="w-full px-2 py-1 border border-stone-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-stone-500"
           >
-            <option value="deepseek/deepseek-r1-0528">DeepSeek R1</option>
-            <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
+            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
           </select>
         </div>
 

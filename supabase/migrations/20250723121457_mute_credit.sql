@@ -1,22 +1,35 @@
 /*
-  # Complete Database Reset and Setup
+  # Complete Database Schema Fix
 
-  1. Drop all existing tables and functions
-  2. Create fresh user management system
-  3. Set up proper authentication triggers
-  4. Create all required tables with proper relationships
-  5. Set up RLS policies
-  6. Create helper functions
+  1. New Tables
+    - `user_profiles` - User profile information
+    - `user_settings` - User preferences and settings
+    - `user_streaks` - Streak tracking and zen points
+    - `user_goals` - User wellness goals
+    - `user_progress` - Daily progress tracking
+    - `daily_recommendations` - Personalized daily recommendations
+    - `user_health_metrics` - Health and wellness metrics
+    - `lessons` - Wellness lessons and exercises
+    - `chat_sessions` - Chat conversation sessions
+    - `chat_messages` - Individual chat messages
 
-  This migration completely resets the database to a clean, working state.
+  2. Security
+    - Enable RLS on all tables
+    - Add policies for authenticated users to manage their own data
+
+  3. Functions
+    - `handle_new_user()` - Creates user profile, settings, and streaks on signup
+    - `update_user_streak()` - Updates user streak when lessons are completed
 */
 
--- Drop all existing tables and functions
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-DROP FUNCTION IF EXISTS public.handle_new_user();
-DROP FUNCTION IF EXISTS public.create_user_profile();
-DROP FUNCTION IF EXISTS public.update_user_streak(uuid);
+-- Drop existing triggers and functions with CASCADE
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users CASCADE;
+DROP TRIGGER IF EXISTS create_user_profile_trigger ON auth.users CASCADE;
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.create_user_profile() CASCADE;
+DROP FUNCTION IF EXISTS public.update_user_streak(uuid) CASCADE;
 
+-- Drop all existing tables with CASCADE
 DROP TABLE IF EXISTS public.chat_messages CASCADE;
 DROP TABLE IF EXISTS public.chat_sessions CASCADE;
 DROP TABLE IF EXISTS public.lessons CASCADE;
@@ -29,7 +42,7 @@ DROP TABLE IF EXISTS public.user_settings CASCADE;
 DROP TABLE IF EXISTS public.user_profiles CASCADE;
 
 -- Create user_profiles table
-CREATE TABLE public.user_profiles (
+CREATE TABLE IF NOT EXISTS public.user_profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name text,
   age integer,
@@ -43,7 +56,7 @@ CREATE TABLE public.user_profiles (
 );
 
 -- Create user_settings table
-CREATE TABLE public.user_settings (
+CREATE TABLE IF NOT EXISTS public.user_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid UNIQUE REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   chat_personality text DEFAULT 'friendly' CHECK (chat_personality IN ('friendly', 'professional')),
@@ -55,7 +68,7 @@ CREATE TABLE public.user_settings (
 );
 
 -- Create user_streaks table
-CREATE TABLE public.user_streaks (
+CREATE TABLE IF NOT EXISTS public.user_streaks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid UNIQUE REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   current_streak integer DEFAULT 0,
@@ -69,7 +82,7 @@ CREATE TABLE public.user_streaks (
 );
 
 -- Create user_goals table
-CREATE TABLE public.user_goals (
+CREATE TABLE IF NOT EXISTS public.user_goals (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   goal_type text NOT NULL,
@@ -80,7 +93,7 @@ CREATE TABLE public.user_goals (
 );
 
 -- Create user_progress table
-CREATE TABLE public.user_progress (
+CREATE TABLE IF NOT EXISTS public.user_progress (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   date date NOT NULL,
@@ -94,7 +107,7 @@ CREATE TABLE public.user_progress (
 );
 
 -- Create daily_recommendations table
-CREATE TABLE public.daily_recommendations (
+CREATE TABLE IF NOT EXISTS public.daily_recommendations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   recommendation_type text NOT NULL,
@@ -107,7 +120,7 @@ CREATE TABLE public.daily_recommendations (
 );
 
 -- Create user_health_metrics table
-CREATE TABLE public.user_health_metrics (
+CREATE TABLE IF NOT EXISTS public.user_health_metrics (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   stress_level integer CHECK (stress_level >= 1 AND stress_level <= 10),
@@ -121,7 +134,7 @@ CREATE TABLE public.user_health_metrics (
 );
 
 -- Create lessons table
-CREATE TABLE public.lessons (
+CREATE TABLE IF NOT EXISTS public.lessons (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   title text NOT NULL,
@@ -137,7 +150,7 @@ CREATE TABLE public.lessons (
 );
 
 -- Create chat_sessions table
-CREATE TABLE public.chat_sessions (
+CREATE TABLE IF NOT EXISTS public.chat_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   title text DEFAULT 'New Chat',
@@ -148,7 +161,7 @@ CREATE TABLE public.chat_sessions (
 );
 
 -- Create chat_messages table
-CREATE TABLE public.chat_messages (
+CREATE TABLE IF NOT EXISTS public.chat_messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id uuid REFERENCES public.chat_sessions(id) ON DELETE CASCADE,
   user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
@@ -240,24 +253,26 @@ CREATE POLICY "Users can manage own chat messages" ON public.chat_messages
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  -- Insert user profile
-  INSERT INTO public.user_profiles (id, created_at, updated_at)
-  VALUES (NEW.id, now(), now());
-  
-  -- Insert user settings
-  INSERT INTO public.user_settings (user_id, created_at, updated_at)
-  VALUES (NEW.id, now(), now());
-  
-  -- Insert user streaks
-  INSERT INTO public.user_streaks (user_id, created_at, updated_at)
-  VALUES (NEW.id, now(), now());
-  
-  RETURN NEW;
-EXCEPTION
-  WHEN OTHERS THEN
-    -- Log error but don't fail the user creation
-    RAISE WARNING 'Error creating user profile: %', SQLERRM;
+  BEGIN
+    -- Insert user profile
+    INSERT INTO public.user_profiles (id, created_at, updated_at)
+    VALUES (NEW.id, now(), now());
+    
+    -- Insert user settings
+    INSERT INTO public.user_settings (user_id, created_at, updated_at)
+    VALUES (NEW.id, now(), now());
+    
+    -- Insert user streaks
+    INSERT INTO public.user_streaks (user_id, created_at, updated_at)
+    VALUES (NEW.id, now(), now());
+    
     RETURN NEW;
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Log error but don't fail the user creation
+      RAISE WARNING 'Error creating user profile for %: %', NEW.id, SQLERRM;
+      RETURN NEW;
+  END;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -284,7 +299,14 @@ BEGIN
   -- If no streak record exists, create one
   IF NOT FOUND THEN
     INSERT INTO public.user_streaks (user_id, current_streak, longest_streak, last_activity_date, total_lessons_completed, zen_garden_points)
-    VALUES (user_uuid, 1, 1, today_date, 1, 10);
+    VALUES (user_uuid, 1, 1, today_date, 1, 10)
+    ON CONFLICT (user_id) DO UPDATE SET
+      current_streak = 1,
+      longest_streak = GREATEST(user_streaks.longest_streak, 1),
+      last_activity_date = today_date,
+      total_lessons_completed = user_streaks.total_lessons_completed + 1,
+      zen_garden_points = user_streaks.zen_garden_points + 10,
+      updated_at = now();
     RETURN;
   END IF;
   
