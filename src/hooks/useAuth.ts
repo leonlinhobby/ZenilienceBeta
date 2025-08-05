@@ -11,6 +11,22 @@ export const useAuth = () => {
     // Get initial session
     const getInitialSession = async () => {
       try {
+        // Check for demo session first
+        const demoSession = localStorage.getItem('demo_session');
+        if (demoSession) {
+          try {
+            const parsedSession = JSON.parse(demoSession);
+            setSession(parsedSession);
+            setUser(parsedSession.user);
+            console.log('Demo session restored');
+            setLoading(false);
+            return;
+          } catch (error) {
+            console.error('Error parsing demo session:', error);
+            localStorage.removeItem('demo_session');
+          }
+        }
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -79,30 +95,40 @@ export const useAuth = () => {
       
       // Handle demo account
       if (email === 'demo@zenilience.com' && password === 'demo123456') {
-        // Create a mock user session for demo
-        const mockUser = {
-          id: 'demo-user-id-12345678-1234-1234-1234-123456789012',
-          email: 'demo@zenilience.com',
-          email_confirmed_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          aud: 'authenticated',
-          role: 'authenticated'
-        };
-        
-        const mockSession = {
-          access_token: 'demo-access-token',
-          refresh_token: 'demo-refresh-token',
-          expires_in: 3600,
-          expires_at: Date.now() + 3600000,
-          token_type: 'bearer',
-          user: mockUser
-        };
-        
-        setSession(mockSession as any);
-        setUser(mockUser as any);
-        console.log('Demo signin successful');
-        return { data: { user: mockUser, session: mockSession }, error: null };
+        try {
+          // Create a mock user session for demo
+          const mockUser = {
+            id: 'demo-user-id-12345678-1234-1234-1234-123456789012',
+            email: 'demo@zenilience.com',
+            email_confirmed_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            aud: 'authenticated',
+            role: 'authenticated',
+            app_metadata: {},
+            user_metadata: {}
+          };
+          
+          const mockSession = {
+            access_token: 'demo-access-token',
+            refresh_token: 'demo-refresh-token',
+            expires_in: 3600,
+            expires_at: Date.now() + 3600000,
+            token_type: 'bearer',
+            user: mockUser
+          };
+          
+          // Store demo session in localStorage for persistence
+          localStorage.setItem('demo_session', JSON.stringify(mockSession));
+          
+          setSession(mockSession as any);
+          setUser(mockUser as any);
+          console.log('Demo signin successful');
+          return { data: { user: mockUser, session: mockSession }, error: null };
+        } catch (demoError) {
+          console.error('Demo login error:', demoError);
+          return { data: null, error: { message: 'Demo login failed' } };
+        }
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -128,6 +154,10 @@ export const useAuth = () => {
   const signOut = async () => {
     try {
       setLoading(true);
+      
+      // Clear demo session if it exists
+      localStorage.removeItem('demo_session');
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       

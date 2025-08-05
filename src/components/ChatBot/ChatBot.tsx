@@ -73,12 +73,16 @@ const ChatBot: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await sendMessageToGemini(input.trim(), messages, settings);
+      const response = await sendMessageToGemini(
+        input.trim(), 
+        messages.slice(-10), // Only send last 10 messages to avoid token limits
+        settings
+      );
       
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: response.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I encountered an error. Please try again.',
+        content: response.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I encountered an issue. Please try again.',
         timestamp: new Date()
       };
 
@@ -89,7 +93,7 @@ const ChatBot: React.FC = () => {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: 'Sorry, I encountered an error. Please try again later.',
+        content: 'I apologize, but I\'m having trouble connecting right now. Please try again in a moment.',
         timestamp: new Date()
       };
 

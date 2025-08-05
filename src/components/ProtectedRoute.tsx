@@ -11,10 +11,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-stone-300 border-t-stone-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-stone-600">Loading...</p>
+          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading your wellness dashboard...</p>
+          <p className="text-gray-500 text-sm mt-2">Please wait a moment</p>
         </div>
       </div>
     );

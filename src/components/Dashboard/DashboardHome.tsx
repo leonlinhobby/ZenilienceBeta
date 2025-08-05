@@ -42,6 +42,12 @@ const DashboardHome: React.FC = () => {
   const initializeDashboard = async () => {
     try {
       console.log('Initializing dashboard for user:', user?.id);
+      
+      // Add small delay for demo user to ensure proper state initialization
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
       await Promise.all([
         fetchProfile(),
         fetchStreak(),
@@ -222,6 +228,11 @@ const DashboardHome: React.FC = () => {
   };
 
   const generateDefaultLessons = async () => {
+    // Don't generate lessons for demo user
+    if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+      return;
+    }
+    
     const defaultLessons = [
       {
         title: "Morning Meditation",

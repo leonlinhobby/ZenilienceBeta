@@ -172,7 +172,7 @@ const ZenoChat: React.FC = () => {
         setSessions(demoSessions);
         console.log('Demo chat sessions loaded:', demoSessions.length);
         
-        if (!currentSession) {
+        if (!currentSession && demoSessions.length > 0) {
           setCurrentSession(demoSessions[0]);
         }
         return;
@@ -372,7 +372,12 @@ const ZenoChat: React.FC = () => {
 
       const response = await sendMessageToGemini(
         userMessage,
-        messages.map(m => ({ type: m.role, content: m.content })),
+        messages.map(m => ({ 
+          id: m.id,
+          type: m.role === 'user' ? 'user' : 'bot',
+          content: m.content,
+          timestamp: new Date(m.created_at)
+        })),
         {
           temperature: 0.7,
           model: 'gemini-2.0-flash-exp',
