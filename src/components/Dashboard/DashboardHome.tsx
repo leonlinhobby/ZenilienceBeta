@@ -57,6 +57,13 @@ const DashboardHome: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setProfile({ subscription_type: 'zenith' });
+        console.log('Demo profile loaded');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('subscription_type')
@@ -74,6 +81,13 @@ const DashboardHome: React.FC = () => {
 
   const fetchDailyProgress = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setDailyLessonsCompleted(1);
+        console.log('Demo daily progress loaded');
+        return;
+      }
+      
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('user_progress')
@@ -94,6 +108,64 @@ const DashboardHome: React.FC = () => {
   const fetchLessons = async () => {
     try {
       console.log('Fetching lessons for user:', user?.id);
+      
+      // Handle demo user with sample lessons
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        const demoLessons = [
+          {
+            id: 'demo-lesson-1',
+            title: 'Evening Relaxation',
+            description: 'Wind down with a calming meditation session',
+            lesson_type: 'meditation',
+            estimated_duration: 10,
+            difficulty_level: 'beginner',
+            content: {
+              instruction: 'Find a comfortable position and let your body relax',
+              steps: [
+                'Sit or lie down comfortably',
+                'Close your eyes gently',
+                'Take three deep breaths',
+                'Scan your body from head to toe',
+                'Release any tension you find'
+              ],
+              duration: 10,
+              tips: [
+                'It\'s okay if your mind wanders',
+                'Focus on the feeling of relaxation',
+                'End when you feel ready'
+              ]
+            }
+          },
+          {
+            id: 'demo-lesson-2',
+            title: 'Gratitude Practice',
+            description: 'Cultivate appreciation for the good in your life',
+            lesson_type: 'education',
+            estimated_duration: 5,
+            difficulty_level: 'beginner',
+            content: {
+              instruction: 'Think of three things you\'re grateful for today',
+              steps: [
+                'Find a quiet moment',
+                'Think of something small you\'re grateful for',
+                'Think of someone you appreciate',
+                'Think of an experience that brought you joy',
+                'Feel the warmth of gratitude'
+              ],
+              duration: 5,
+              tips: [
+                'Start with simple things',
+                'Really feel the gratitude',
+                'Write them down if you like'
+              ]
+            }
+          }
+        ];
+        setLessons(demoLessons);
+        console.log('Demo lessons loaded:', demoLessons.length);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
@@ -123,6 +195,17 @@ const DashboardHome: React.FC = () => {
 
   const fetchStreak = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setStreak({
+          current_streak: 7,
+          longest_streak: 12,
+          zen_garden_points: 150
+        });
+        console.log('Demo streak loaded');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_streaks')
         .select('*')
@@ -298,6 +381,19 @@ const DashboardHome: React.FC = () => {
   const completeLesson = async (lessonId: string) => {
     try {
       console.log('Completing lesson:', lessonId);
+      
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        // Just update local state for demo
+        setLessons(prev => prev.filter(lesson => lesson.id !== lessonId));
+        setStreak(prev => ({
+          ...prev,
+          zen_garden_points: prev.zen_garden_points + 10
+        }));
+        setDailyLessonsCompleted(prev => prev + 1);
+        console.log('Demo lesson completed');
+        return;
+      }
       
       // Mark lesson as completed
       const { error: lessonError } = await supabase

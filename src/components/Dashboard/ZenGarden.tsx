@@ -28,6 +28,14 @@ const ZenGarden: React.FC<ZenGardenProps> = () => {
 
   const fetchGardenData = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setTotalLessons(15);
+        setZenPoints(150);
+        console.log('Demo garden data loaded');
+        return;
+      }
+      
       const { data: streakData } = await supabase
         .from('user_streaks')
         .select('total_lessons_completed, zen_garden_points')

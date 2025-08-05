@@ -78,7 +78,7 @@ const ChatBot: React.FC = () => {
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: response.candidates[0].content.parts[0].text,
+        content: response.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date()
       };
 

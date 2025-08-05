@@ -40,6 +40,26 @@ const ProfileSettings: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setProfile({
+          full_name: 'Demo User',
+          age: 28,
+          gender: 'prefer_not_to_say',
+          occupation: 'Software Developer',
+          interests: ['Meditation', 'Technology', 'Reading', 'Nature'],
+          subscription_type: 'zenith'
+        });
+        setUserSettings({
+          chat_personality: 'friendly',
+          daily_lesson_limit: 5,
+          notifications_enabled: true,
+          theme: 'light'
+        });
+        console.log('Demo profile settings loaded');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -75,6 +95,14 @@ const ProfileSettings: React.FC = () => {
   const saveProfile = async () => {
     setSaving(true);
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        // Just update local state for demo
+        alert('Profile saved successfully! (Demo mode)');
+        setSaving(false);
+        return;
+      }
+      
       const { error } = await supabase
         .from('user_profiles')
         .update({
@@ -97,6 +125,14 @@ const ProfileSettings: React.FC = () => {
   const saveSettings = async () => {
     setSaving(true);
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        // Just update local state for demo
+        alert('Settings saved successfully! (Demo mode)');
+        setSaving(false);
+        return;
+      }
+      
       const { error } = await supabase
         .from('user_settings')
         .update({

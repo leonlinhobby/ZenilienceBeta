@@ -27,6 +27,20 @@ const Analytics: React.FC = () => {
 
   const fetchMetrics = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setMetrics({
+          stress_level: 2,
+          mood_score: 8,
+          sleep_quality: 8,
+          focus_level: 8,
+          anxiety_level: 1,
+          energy_level: 8
+        });
+        console.log('Demo metrics loaded');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_health_metrics')
         .select('*')
@@ -45,6 +59,22 @@ const Analytics: React.FC = () => {
 
   const fetchWeeklyData = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        const demoWeeklyData = [
+          { created_at: new Date(Date.now() - 6 * 86400000).toISOString(), mood_score: 8, stress_level: 3 },
+          { created_at: new Date(Date.now() - 5 * 86400000).toISOString(), mood_score: 7, stress_level: 4 },
+          { created_at: new Date(Date.now() - 4 * 86400000).toISOString(), mood_score: 9, stress_level: 2 },
+          { created_at: new Date(Date.now() - 3 * 86400000).toISOString(), mood_score: 8, stress_level: 3 },
+          { created_at: new Date(Date.now() - 2 * 86400000).toISOString(), mood_score: 9, stress_level: 2 },
+          { created_at: new Date(Date.now() - 1 * 86400000).toISOString(), mood_score: 9, stress_level: 1 },
+          { created_at: new Date().toISOString(), mood_score: 8, stress_level: 2 }
+        ];
+        setWeeklyData(demoWeeklyData);
+        console.log('Demo weekly data loaded');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_health_metrics')
         .select('*')

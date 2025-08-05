@@ -15,6 +15,20 @@ const SignUpPage: React.FC = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    setError('');
+    
+    const { error } = await signIn('demo@zenilience.com', 'demo123456');
+    
+    if (error) {
+      setError('Demo account not available. Please try creating a regular account.');
+    } else {
+      navigate('/dashboard');
+    }
+    setLoading(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -171,6 +185,37 @@ const SignUpPage: React.FC = () => {
                 )}
               </button>
             </form>
+
+            {/* Demo Account Button */}
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-stone-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-stone-500">Or try demo</span>
+                </div>
+              </div>
+              
+              <button
+                onClick={handleDemoLogin}
+                disabled={loading}
+                className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center group"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    🎭 Try Demo Account
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+              
+              <p className="text-xs text-stone-500 mt-2 text-center">
+                Experience Zenilience with pre-loaded demo data
+              </p>
+            </div>
 
             <div className="mt-6 text-center">
               <p className="text-stone-600">

@@ -61,6 +61,13 @@ const ZenoChat: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setProfile({ subscription_type: 'zenith' });
+        console.log('Demo profile loaded for chat');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('subscription_type')
@@ -83,6 +90,13 @@ const ZenoChat: React.FC = () => {
 
   const fetchDailyMessageCount = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setDailyMessages(2); // Demo user has used 2 messages
+        console.log('Demo daily messages loaded');
+        return;
+      }
+      
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('chat_messages')
@@ -111,6 +125,13 @@ const ZenoChat: React.FC = () => {
 
   const fetchUserSettings = async () => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setPersonality('friendly');
+        console.log('Demo settings loaded');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_settings')
         .select('chat_personality')
@@ -132,6 +153,31 @@ const ZenoChat: React.FC = () => {
 
   const fetchSessions = async () => {
     try {
+      // Handle demo user with sample sessions
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        const demoSessions = [
+          {
+            id: 'demo-session-1',
+            title: 'Getting Started with Wellness',
+            last_message_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+            message_count: 6
+          },
+          {
+            id: 'demo-session-2',
+            title: 'Managing Daily Stress',
+            last_message_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+            message_count: 4
+          }
+        ];
+        setSessions(demoSessions);
+        console.log('Demo chat sessions loaded:', demoSessions.length);
+        
+        if (!currentSession) {
+          setCurrentSession(demoSessions[0]);
+        }
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('chat_sessions')
         .select('*')
@@ -158,6 +204,43 @@ const ZenoChat: React.FC = () => {
     if (!currentSession) return;
 
     try {
+      // Handle demo user with sample messages
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        if (currentSession.id === 'demo-session-1') {
+          const demoMessages = [
+            {
+              id: 'demo-msg-1',
+              content: 'Hi Zeno! I\'m new to meditation and feeling a bit overwhelmed with stress lately.',
+              role: 'user' as const,
+              created_at: new Date(Date.now() - 7200000).toISOString()
+            },
+            {
+              id: 'demo-msg-2',
+              content: 'Hello! I\'m so glad you\'re here. It\'s completely normal to feel overwhelmed, and you\'ve taken a wonderful first step by reaching out. Meditation can be incredibly helpful for stress. Would you like to start with a simple 5-minute breathing exercise?',
+              role: 'assistant' as const,
+              created_at: new Date(Date.now() - 7199000).toISOString()
+            },
+            {
+              id: 'demo-msg-3',
+              content: 'That sounds perfect. I\'ve never done meditation before though.',
+              role: 'user' as const,
+              created_at: new Date(Date.now() - 7198000).toISOString()
+            },
+            {
+              id: 'demo-msg-4',
+              content: 'No worries at all! Everyone starts somewhere. The beauty of meditation is that there\'s no "perfect" way to do it. I\'ll guide you through a gentle breathing exercise that\'s perfect for beginners.',
+              role: 'assistant' as const,
+              created_at: new Date(Date.now() - 7197000).toISOString()
+            }
+          ];
+          setMessages(demoMessages);
+          console.log('Demo messages loaded for session 1');
+        } else {
+          setMessages([]);
+        }
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
@@ -179,6 +262,23 @@ const ZenoChat: React.FC = () => {
   const createNewSession = async () => {
     try {
       console.log('Creating new chat session...');
+      
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        const newDemoSession = {
+          id: `demo-session-${Date.now()}`,
+          title: 'New Chat',
+          last_message_at: new Date().toISOString(),
+          message_count: 0
+        };
+        setSessions(prev => [newDemoSession, ...prev]);
+        setCurrentSession(newDemoSession);
+        setMessages([]);
+        setShowSidebar(false);
+        console.log('Demo session created');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('chat_sessions')
         .insert({
@@ -205,6 +305,13 @@ const ZenoChat: React.FC = () => {
 
   const updatePersonality = async (newPersonality: 'friendly' | 'professional') => {
     try {
+      // Handle demo user
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setPersonality(newPersonality);
+        console.log('Demo personality updated to:', newPersonality);
+        return;
+      }
+      
       const { error } = await supabase
         .from('user_settings')
         .update({ chat_personality: newPersonality })
@@ -241,6 +348,8 @@ const ZenoChat: React.FC = () => {
       };
       setMessages(prev => [...prev, newUserMessage]);
 
+      // Handle demo user - don't save to database
+      if (user?.id !== 'demo-user-id-12345678-1234-1234-1234-123456789012') {
       // Save user message to database
       const { error: userMessageError } = await supabase
         .from('chat_messages')
@@ -269,6 +378,7 @@ const ZenoChat: React.FC = () => {
           maxTokens: 150,
           systemPrompt
         }
+      }
       );
 
       const aiResponse = response.candidates[0].content.parts[0].text;
@@ -283,6 +393,8 @@ const ZenoChat: React.FC = () => {
       };
       setMessages(prev => [...prev, newAiMessage]);
 
+      // Handle demo user - don't save to database
+      if (user?.id !== 'demo-user-id-12345678-1234-1234-1234-123456789012') {
       // Save AI message to database
       const { error: aiMessageError } = await supabase
         .from('chat_messages')
@@ -309,6 +421,7 @@ const ZenoChat: React.FC = () => {
 
       if (sessionError) {
         console.error('Error updating session:', sessionError);
+      }
       }
 
       // Update daily message count

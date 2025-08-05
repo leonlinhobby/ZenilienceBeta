@@ -71,7 +71,7 @@ const Navigation: React.FC = () => {
               <Link to="/dashboard" className="bg-gradient-to-r from-stone-600 to-stone-700 text-white px-4 lg:px-5 py-1.5 lg:py-2 rounded-lg hover:from-stone-700 hover:to-stone-800 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-stone-500/25 font-medium flex items-center group relative overflow-hidden text-sm lg:text-base">
               <span className="absolute inset-0 bg-gradient-to-r from-stone-500 to-stone-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               <span className="relative z-10 group-hover:scale-105 transition-transform duration-300">
-                Dashboard
+                {user.email === 'demo@zenilience.com' ? '🎭 Demo Dashboard' : 'Dashboard'}
               </span>
               <ArrowRight className="ml-1.5 lg:ml-2 w-3.5 lg:w-4 h-3.5 lg:h-4 group-hover:translate-x-1 group-hover:scale-110 transition-all duration-300 relative z-10" />
               </Link>
@@ -135,7 +135,7 @@ const Navigation: React.FC = () => {
                 >
                 <span className="absolute inset-0 bg-gradient-to-r from-stone-500 to-stone-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                 <span className="relative z-10">
-                    Dashboard
+                    {user.email === 'demo@zenilience.com' ? '🎭 Demo Dashboard' : 'Dashboard'}
                 </span>
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300 relative z-10" />
                 </Link>

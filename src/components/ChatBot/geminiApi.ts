@@ -52,7 +52,19 @@ export const sendMessageToGemini = async (
     const data = await response.json();
     
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      throw new Error('Invalid response from Gemini API');
+      console.error('Invalid Gemini response:', data);
+      return {
+        candidates: [{
+          content: {
+            parts: [{ text: 'I apologize, but I encountered an issue processing your request. Please try again.' }]
+          }
+        }],
+        usageMetadata: {
+          promptTokenCount: 0,
+          candidatesTokenCount: 0,
+          totalTokenCount: 0
+        }
+      };
     }
 
     return {
