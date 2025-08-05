@@ -379,6 +379,7 @@ const ZenoChat: React.FC = () => {
           maxTokens: 150,
           systemPrompt
         }
+      );
 
       const aiResponse = response.candidates[0].content.parts[0].text;
       console.log('AI response received');
