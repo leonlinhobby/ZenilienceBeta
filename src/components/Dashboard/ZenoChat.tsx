@@ -350,18 +350,19 @@ const ZenoChat: React.FC = () => {
 
       // Handle demo user - don't save to database
       if (user?.id !== 'demo-user-id-12345678-1234-1234-1234-123456789012') {
-      // Save user message to database
-      const { error: userMessageError } = await supabase
-        .from('chat_messages')
-        .insert({
-          session_id: currentSession.id,
-          user_id: user?.id,
-          content: userMessage,
-          role: 'user'
-        });
+        // Save user message to database
+        const { error: userMessageError } = await supabase
+          .from('chat_messages')
+          .insert({
+            session_id: currentSession.id,
+            user_id: user?.id,
+            content: userMessage,
+            role: 'user'
+          });
 
-      if (userMessageError) {
-        console.error('Error saving user message:', userMessageError);
+        if (userMessageError) {
+          console.error('Error saving user message:', userMessageError);
+        }
       }
 
       // Get AI response
@@ -378,7 +379,6 @@ const ZenoChat: React.FC = () => {
           maxTokens: 150,
           systemPrompt
         }
-      }
       );
 
       const aiResponse = response.candidates[0].content.parts[0].text;
@@ -395,33 +395,33 @@ const ZenoChat: React.FC = () => {
 
       // Handle demo user - don't save to database
       if (user?.id !== 'demo-user-id-12345678-1234-1234-1234-123456789012') {
-      // Save AI message to database
-      const { error: aiMessageError } = await supabase
-        .from('chat_messages')
-        .insert({
-          session_id: currentSession.id,
-          user_id: user?.id,
-          content: aiResponse,
-          role: 'assistant'
-        });
+        // Save AI message to database
+        const { error: aiMessageError } = await supabase
+          .from('chat_messages')
+          .insert({
+            session_id: currentSession.id,
+            user_id: user?.id,
+            content: aiResponse,
+            role: 'assistant'
+          });
 
-      if (aiMessageError) {
-        console.error('Error saving AI message:', aiMessageError);
-      }
+        if (aiMessageError) {
+          console.error('Error saving AI message:', aiMessageError);
+        }
 
-      // Update session
-      const { error: sessionError } = await supabase
-        .from('chat_sessions')
-        .update({
-          last_message_at: new Date().toISOString(),
-          message_count: messages.length + 2,
-          title: messages.length === 0 ? userMessage.slice(0, 30) + '...' : currentSession.title
-        })
-        .eq('id', currentSession.id);
+        // Update session
+        const { error: sessionError } = await supabase
+          .from('chat_sessions')
+          .update({
+            last_message_at: new Date().toISOString(),
+            message_count: messages.length + 2,
+            title: messages.length === 0 ? userMessage.slice(0, 30) + '...' : currentSession.title
+          })
+          .eq('id', currentSession.id);
 
-      if (sessionError) {
-        console.error('Error updating session:', sessionError);
-      }
+        if (sessionError) {
+          console.error('Error updating session:', sessionError);
+        }
       }
 
       // Update daily message count
