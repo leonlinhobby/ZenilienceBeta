@@ -69,7 +69,7 @@ const ModernDashboard: React.FC = () => {
   }
 
   // Show onboarding for new users
-  if (profile && !profile.onboarding_completed) {
+  if (!profile || !profile.onboarding_completed) {
     if (onboardingStep === 0) {
       return <OnboardingTour onComplete={handleOnboardingComplete} />;
     } else if (onboardingStep === 1) {
