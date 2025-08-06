@@ -301,6 +301,18 @@ const DashboardHome: React.FC = () => {
     ];
 
     try {
+      // Check if user profile exists first
+      const { data: profileCheck, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', user?.id)
+        .single();
+
+      if (profileError || !profileCheck) {
+        console.log('User profile not found, skipping lesson generation');
+        return;
+      }
+
       console.log('Generating default lessons...');
       const lessonsToInsert = defaultLessons.map((lesson, index) => ({
         user_id: user?.id,
