@@ -38,6 +38,9 @@ const ZenoChat: React.FC = () => {
 
   useEffect(() => {
     if (user) {
+      setSessions([]);
+      setCurrentSession(null);
+      setMessages([]);
       fetchProfile();
       fetchSessions();
       fetchUserSettings();
@@ -370,6 +373,26 @@ const ZenoChat: React.FC = () => {
 
         if (sessionError) {
           console.error('Error updating session:', sessionError);
+        }
+      } else {
+        // For demo users, update the session in local state
+        if (currentSession.id.startsWith('demo-session-')) {
+          setSessions(prev => prev.map(session => 
+            session.id === currentSession.id 
+              ? { 
+                  ...session, 
+                  last_message_at: new Date().toISOString(),
+                  message_count: messages.length + 2,
+                  title: messages.length === 0 ? userMessage.slice(0, 30) + '...' : session.title
+                }
+              : session
+          ));
+          setCurrentSession(prev => prev ? {
+            ...prev,
+            last_message_at: new Date().toISOString(),
+            message_count: messages.length + 2,
+            title: messages.length === 0 ? userMessage.slice(0, 30) + '...' : prev.title
+          } : null);
         }
       }
 

@@ -178,8 +178,11 @@ export const useUserProfile = () => {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', user.id)
+        .upsert({ 
+          id: user.id,
+          ...updates, 
+          updated_at: new Date().toISOString() 
+        })
         .select()
         .single();
 
