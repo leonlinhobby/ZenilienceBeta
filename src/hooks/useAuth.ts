@@ -95,40 +95,38 @@ export const useAuth = () => {
       
       // Handle demo account
       if (email === 'demo@zenilience.com' && password === 'demo123456') {
-        try {
-          // Create a mock user session for demo
-          const mockUser = {
-            id: 'demo-user-id-12345678-1234-1234-1234-123456789012',
-            email: 'demo@zenilience.com',
-            email_confirmed_at: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            aud: 'authenticated',
-            role: 'authenticated',
-            app_metadata: {},
-            user_metadata: {}
-          };
-          
-          const mockSession = {
-            access_token: 'demo-access-token',
-            refresh_token: 'demo-refresh-token',
-            expires_in: 3600,
-            expires_at: Date.now() + 3600000,
-            token_type: 'bearer',
-            user: mockUser
-          };
-          
-          // Store demo session in localStorage for persistence
-          localStorage.setItem('demo_session', JSON.stringify(mockSession));
-          
-          setSession(mockSession as any);
-          setUser(mockUser as any);
-          console.log('Demo signin successful');
-          return { data: { user: mockUser, session: mockSession }, error: null };
-        } catch (demoError) {
-          console.error('Demo login error:', demoError);
-          return { data: null, error: { message: 'Demo login failed' } };
-        }
+        console.log('Demo login attempt');
+        
+        const mockUser = {
+          id: 'demo-user-id-12345678-1234-1234-1234-123456789012',
+          email: 'demo@zenilience.com',
+          email_confirmed_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          aud: 'authenticated',
+          role: 'authenticated',
+          app_metadata: {},
+          user_metadata: {}
+        };
+        
+        const mockSession = {
+          access_token: 'demo-access-token',
+          refresh_token: 'demo-refresh-token',
+          expires_in: 3600,
+          expires_at: Date.now() + 3600000,
+          token_type: 'bearer',
+          user: mockUser
+        };
+        
+        // Store demo session
+        localStorage.setItem('demo_session', JSON.stringify(mockSession));
+        
+        setSession(mockSession as any);
+        setUser(mockUser as any);
+        
+        console.log('Demo signin successful');
+        setLoading(false);
+        return { data: { user: mockUser, session: mockSession }, error: null };
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({

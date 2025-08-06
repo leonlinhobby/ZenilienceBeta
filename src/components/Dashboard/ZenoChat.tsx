@@ -61,10 +61,8 @@ const ZenoChat: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         setProfile({ subscription_type: 'zenith' });
-        console.log('Demo profile loaded for chat');
         return;
       }
       
@@ -74,14 +72,8 @@ const ZenoChat: React.FC = () => {
         .eq('id', user?.id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
       if (data) {
         setProfile(data);
-        console.log('Profile loaded for chat:', data.subscription_type);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -90,10 +82,8 @@ const ZenoChat: React.FC = () => {
 
   const fetchDailyMessageCount = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
-        setDailyMessages(2); // Demo user has used 2 messages
-        console.log('Demo daily messages loaded');
+        setDailyMessages(2);
         return;
       }
       
@@ -112,7 +102,6 @@ const ZenoChat: React.FC = () => {
       }
 
       setDailyMessages(data?.length || 0);
-      console.log('Daily messages used:', data?.length || 0);
     } catch (error) {
       console.error('Error fetching daily message count:', error);
     }
@@ -125,10 +114,8 @@ const ZenoChat: React.FC = () => {
 
   const fetchUserSettings = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         setPersonality('friendly');
-        console.log('Demo settings loaded');
         return;
       }
       
@@ -137,11 +124,6 @@ const ZenoChat: React.FC = () => {
         .select('chat_personality')
         .eq('user_id', user?.id)
         .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching settings:', error);
-        return;
-      }
 
       if (data) {
         setPersonality(data.chat_personality);
@@ -153,25 +135,22 @@ const ZenoChat: React.FC = () => {
 
   const fetchSessions = async () => {
     try {
-      // Handle demo user with sample sessions
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         const demoSessions = [
           {
             id: 'demo-session-1',
             title: 'Getting Started with Wellness',
-            last_message_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+            last_message_at: new Date(Date.now() - 3600000).toISOString(),
             message_count: 6
           },
           {
             id: 'demo-session-2',
             title: 'Managing Daily Stress',
-            last_message_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+            last_message_at: new Date(Date.now() - 86400000).toISOString(),
             message_count: 4
           }
         ];
         setSessions(demoSessions);
-        console.log('Demo chat sessions loaded:', demoSessions.length);
-        
         if (!currentSession && demoSessions.length > 0) {
           setCurrentSession(demoSessions[0]);
         }
@@ -190,7 +169,6 @@ const ZenoChat: React.FC = () => {
       }
 
       setSessions(data || []);
-      console.log('Chat sessions loaded:', data?.length || 0);
       
       if (data && data.length > 0 && !currentSession) {
         setCurrentSession(data[0]);
@@ -204,7 +182,6 @@ const ZenoChat: React.FC = () => {
     if (!currentSession) return;
 
     try {
-      // Handle demo user with sample messages
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         if (currentSession.id === 'demo-session-1') {
           const demoMessages = [
@@ -219,22 +196,9 @@ const ZenoChat: React.FC = () => {
               content: 'Hello! I\'m so glad you\'re here. It\'s completely normal to feel overwhelmed, and you\'ve taken a wonderful first step by reaching out. Meditation can be incredibly helpful for stress. Would you like to start with a simple 5-minute breathing exercise?',
               role: 'assistant' as const,
               created_at: new Date(Date.now() - 7199000).toISOString()
-            },
-            {
-              id: 'demo-msg-3',
-              content: 'That sounds perfect. I\'ve never done meditation before though.',
-              role: 'user' as const,
-              created_at: new Date(Date.now() - 7198000).toISOString()
-            },
-            {
-              id: 'demo-msg-4',
-              content: 'No worries at all! Everyone starts somewhere. The beauty of meditation is that there\'s no "perfect" way to do it. I\'ll guide you through a gentle breathing exercise that\'s perfect for beginners.',
-              role: 'assistant' as const,
-              created_at: new Date(Date.now() - 7197000).toISOString()
             }
           ];
           setMessages(demoMessages);
-          console.log('Demo messages loaded for session 1');
         } else {
           setMessages([]);
         }
@@ -253,7 +217,6 @@ const ZenoChat: React.FC = () => {
       }
 
       setMessages(data || []);
-      console.log('Messages loaded for session:', data?.length || 0);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
@@ -261,9 +224,6 @@ const ZenoChat: React.FC = () => {
 
   const createNewSession = async () => {
     try {
-      console.log('Creating new chat session...');
-      
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         const newDemoSession = {
           id: `demo-session-${Date.now()}`,
@@ -275,7 +235,6 @@ const ZenoChat: React.FC = () => {
         setCurrentSession(newDemoSession);
         setMessages([]);
         setShowSidebar(false);
-        console.log('Demo session created');
         return;
       }
       
@@ -293,7 +252,6 @@ const ZenoChat: React.FC = () => {
         return;
       }
 
-      console.log('New session created:', data.id);
       setSessions(prev => [data, ...prev]);
       setCurrentSession(data);
       setMessages([]);
@@ -305,10 +263,8 @@ const ZenoChat: React.FC = () => {
 
   const updatePersonality = async (newPersonality: 'friendly' | 'professional') => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         setPersonality(newPersonality);
-        console.log('Demo personality updated to:', newPersonality);
         return;
       }
       
@@ -323,7 +279,6 @@ const ZenoChat: React.FC = () => {
       }
 
       setPersonality(newPersonality);
-      console.log('Personality updated to:', newPersonality);
     } catch (error) {
       console.error('Error updating personality:', error);
     }
@@ -337,9 +292,6 @@ const ZenoChat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log('Sending message:', userMessage);
-
-      // Add user message to UI
       const newUserMessage = {
         id: Date.now().toString(),
         content: userMessage,
@@ -348,9 +300,7 @@ const ZenoChat: React.FC = () => {
       };
       setMessages(prev => [...prev, newUserMessage]);
 
-      // Handle demo user - don't save to database
       if (user?.id !== 'demo-user-id-12345678-1234-1234-1234-123456789012') {
-        // Save user message to database
         const { error: userMessageError } = await supabase
           .from('chat_messages')
           .insert({
@@ -365,10 +315,9 @@ const ZenoChat: React.FC = () => {
         }
       }
 
-      // Get AI response
       const systemPrompt = personality === 'friendly' 
-        ? 'You are Zeno, a friendly and empathetic mental health companion for Zenilience. Respond warmly and supportively in 1-2 sentences. Focus on wellness, mindfulness, and emotional support. Use no formatting like **bold** or _italic_.'
-        : 'You are Zeno, a professional psychologist and therapist for Zenilience. Respond professionally and helpfully in 1-2 sentences. Provide evidence-based mental health guidance. Use no formatting like **bold** or _italic_.';
+        ? 'You are Zeno, a friendly and empathetic mental health companion for Zenilience. Respond warmly and supportively in 1-2 sentences. Focus on wellness, mindfulness, and emotional support.'
+        : 'You are Zeno, a professional psychologist and therapist for Zenilience. Respond professionally and helpfully in 1-2 sentences. Provide evidence-based mental health guidance.';
 
       const response = await sendMessageToGemini(
         userMessage,
@@ -387,9 +336,7 @@ const ZenoChat: React.FC = () => {
       );
 
       const aiResponse = response.candidates[0].content.parts[0].text;
-      console.log('AI response received');
 
-      // Add AI response to UI
       const newAiMessage = {
         id: (Date.now() + 1).toString(),
         content: aiResponse,
@@ -398,9 +345,7 @@ const ZenoChat: React.FC = () => {
       };
       setMessages(prev => [...prev, newAiMessage]);
 
-      // Handle demo user - don't save to database
       if (user?.id !== 'demo-user-id-12345678-1234-1234-1234-123456789012') {
-        // Save AI message to database
         const { error: aiMessageError } = await supabase
           .from('chat_messages')
           .insert({
@@ -414,7 +359,6 @@ const ZenoChat: React.FC = () => {
           console.error('Error saving AI message:', aiMessageError);
         }
 
-        // Update session
         const { error: sessionError } = await supabase
           .from('chat_sessions')
           .update({
@@ -429,13 +373,11 @@ const ZenoChat: React.FC = () => {
         }
       }
 
-      // Update daily message count
       setDailyMessages(prev => prev + 1);
 
     } catch (error) {
       console.error('Error sending message:', error);
       
-      // Add error message to UI
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         content: "I'm sorry, I encountered an error. Please try again.",
@@ -457,7 +399,6 @@ const ZenoChat: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 pb-24 flex relative">
-      {/* Mobile Sidebar Overlay */}
       {showSidebar && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -465,14 +406,12 @@ const ZenoChat: React.FC = () => {
         />
       )}
 
-      {/* Sidebar */}
       <div className={`
         fixed lg:relative inset-y-0 left-0 z-50 lg:z-0
         w-80 bg-white border-r border-gray-200 flex flex-col
         transform transition-transform duration-300 ease-in-out
         ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-gray-800">Zeno Chat</h1>
@@ -501,7 +440,6 @@ const ZenoChat: React.FC = () => {
           </button>
         </div>
 
-        {/* Subscription Info */}
         {profile.subscription_type === 'explorer' && (
           <div className="p-4 border-b border-gray-200 bg-yellow-50">
             <div className="flex items-center">
@@ -516,7 +454,6 @@ const ZenoChat: React.FC = () => {
           </div>
         )}
 
-        {/* Settings Panel */}
         {showSettings && (
           <div className="p-4 border-b border-gray-200 bg-gray-50">
             <h3 className="font-semibold text-gray-800 mb-3">Chat Personality</h3>
@@ -543,7 +480,6 @@ const ZenoChat: React.FC = () => {
           </div>
         )}
 
-        {/* Sessions List */}
         <div className="flex-1 overflow-y-auto">
           {sessions.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
@@ -577,11 +513,9 @@ const ZenoChat: React.FC = () => {
         </div>
       </div>
 
-      {/* Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {currentSession ? (
           <>
-            {/* Chat Header */}
             <div className="p-4 border-b border-gray-200 bg-white flex items-center">
               <button
                 onClick={() => setShowSidebar(true)}
@@ -597,7 +531,6 @@ const ZenoChat: React.FC = () => {
               </div>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 ? (
                 <div className="text-center py-12">
@@ -644,7 +577,6 @@ const ZenoChat: React.FC = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
             <div className="p-4 border-t border-gray-200 bg-white">
               {!canSendMessage() && (
                 <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

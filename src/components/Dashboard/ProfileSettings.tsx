@@ -35,12 +35,12 @@ const ProfileSettings: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchUserSettings();
     }
   }, [user]);
 
   const fetchProfile = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         setProfile({
           full_name: 'Demo User',
@@ -50,13 +50,8 @@ const ProfileSettings: React.FC = () => {
           interests: ['Meditation', 'Technology', 'Reading', 'Nature'],
           subscription_type: 'zenith'
         });
-        setUserSettings({
-          chat_personality: 'friendly',
-          daily_lesson_limit: 5,
-          notifications_enabled: true,
-          theme: 'light'
-        });
         console.log('Demo profile settings loaded');
+        setLoading(false);
         return;
       }
       
@@ -78,6 +73,16 @@ const ProfileSettings: React.FC = () => {
 
   const fetchUserSettings = async () => {
     try {
+      if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
+        setUserSettings({
+          chat_personality: 'friendly',
+          daily_lesson_limit: 5,
+          notifications_enabled: true,
+          theme: 'light'
+        });
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
@@ -95,9 +100,7 @@ const ProfileSettings: React.FC = () => {
   const saveProfile = async () => {
     setSaving(true);
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
-        // Just update local state for demo
         alert('Profile saved successfully! (Demo mode)');
         setSaving(false);
         return;
@@ -125,9 +128,7 @@ const ProfileSettings: React.FC = () => {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
-        // Just update local state for demo
         alert('Settings saved successfully! (Demo mode)');
         setSaving(false);
         return;
@@ -176,13 +177,11 @@ const ProfileSettings: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 pb-24">
-      {/* Header */}
       <div className="text-center pt-8 pb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">👤 Profile</h1>
         <p className="text-gray-600">Manage your personal information</p>
       </div>
 
-      {/* Tab Navigation */}
       <div className="mx-4 mb-6">
         <div className="bg-white rounded-2xl p-2 shadow-lg border border-gray-100">
           <div className="flex">
@@ -212,14 +211,12 @@ const ProfileSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
       <div className="mx-4">
         {activeTab === 'profile' ? (
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Personal Information</h2>
             
             <div className="space-y-6">
-              {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Full Name
@@ -233,7 +230,6 @@ const ProfileSettings: React.FC = () => {
                 />
               </div>
 
-              {/* Age */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Age
@@ -247,7 +243,6 @@ const ProfileSettings: React.FC = () => {
                 />
               </div>
 
-              {/* Gender */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Gender
@@ -265,7 +260,6 @@ const ProfileSettings: React.FC = () => {
                 </select>
               </div>
 
-              {/* Occupation */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Occupation
@@ -279,7 +273,6 @@ const ProfileSettings: React.FC = () => {
                 />
               </div>
 
-              {/* Interests */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Interests
@@ -301,7 +294,6 @@ const ProfileSettings: React.FC = () => {
                 </div>
               </div>
 
-              {/* Save Button */}
               <button
                 onClick={saveProfile}
                 disabled={saving}
@@ -323,7 +315,6 @@ const ProfileSettings: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Chat Settings */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
                 <Settings size={20} className="mr-2" />
@@ -396,7 +387,6 @@ const ProfileSettings: React.FC = () => {
               </button>
             </div>
 
-            {/* Subscription Info */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Subscription</h2>
               <div className={`p-4 rounded-lg ${
@@ -416,7 +406,6 @@ const ProfileSettings: React.FC = () => {
               </div>
             </div>
 
-            {/* Account Actions */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Account</h2>
               <div className="space-y-4">

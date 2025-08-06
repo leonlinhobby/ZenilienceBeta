@@ -43,7 +43,6 @@ const DashboardHome: React.FC = () => {
     try {
       console.log('Initializing dashboard for user:', user?.id);
       
-      // Add small delay for demo user to ensure proper state initialization
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -63,7 +62,6 @@ const DashboardHome: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         setProfile({ subscription_type: 'zenith' });
         console.log('Demo profile loaded');
@@ -87,7 +85,6 @@ const DashboardHome: React.FC = () => {
 
   const fetchDailyProgress = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         setDailyLessonsCompleted(1);
         console.log('Demo daily progress loaded');
@@ -115,7 +112,6 @@ const DashboardHome: React.FC = () => {
     try {
       console.log('Fetching lessons for user:', user?.id);
       
-      // Handle demo user with sample lessons
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         const demoLessons = [
           {
@@ -201,7 +197,6 @@ const DashboardHome: React.FC = () => {
 
   const fetchStreak = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         setStreak({
           current_streak: 7,
@@ -228,7 +223,6 @@ const DashboardHome: React.FC = () => {
   };
 
   const generateDefaultLessons = async () => {
-    // Don't generate lessons for demo user
     if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
       return;
     }
@@ -303,54 +297,6 @@ const DashboardHome: React.FC = () => {
             "Focus on facts rather than assumptions"
           ]
         }
-      },
-      {
-        title: "Mindful Walking",
-        description: "Connect with the present moment through mindful movement",
-        lesson_type: "mindfulness",
-        estimated_duration: 15,
-        difficulty_level: "beginner",
-        content: {
-          instruction: "Walk slowly and pay attention to each step and sensation.",
-          steps: [
-            "Find a quiet place to walk, indoors or outdoors",
-            "Start walking very slowly, slower than normal",
-            "Feel your feet touching the ground with each step",
-            "Notice the movement of your legs and body",
-            "Pay attention to sounds, smells, and sights around you",
-            "When your mind wanders, gently return to the walking"
-          ],
-          duration: 15,
-          tips: [
-            "There's no destination - the walking itself is the practice",
-            "If outdoors, notice nature around you",
-            "You can do this anywhere, even in a small space"
-          ]
-        }
-      },
-      {
-        title: "Gratitude Practice",
-        description: "Cultivate appreciation and positive emotions",
-        lesson_type: "education",
-        estimated_duration: 10,
-        difficulty_level: "beginner",
-        content: {
-          instruction: "Reflect on things you're grateful for in your life.",
-          steps: [
-            "Find a comfortable, quiet place to sit",
-            "Think of three things you're grateful for today",
-            "For each item, spend time really feeling the gratitude",
-            "Consider why you're grateful for each thing",
-            "Notice how focusing on gratitude makes you feel",
-            "Write these down if you'd like to remember them"
-          ],
-          duration: 10,
-          tips: [
-            "Start small - even simple things like a warm cup of coffee count",
-            "Try to feel the emotion, not just think the thoughts",
-            "Make this a daily practice for best results"
-          ]
-        }
       }
     ];
 
@@ -393,9 +339,7 @@ const DashboardHome: React.FC = () => {
     try {
       console.log('Completing lesson:', lessonId);
       
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
-        // Just update local state for demo
         setLessons(prev => prev.filter(lesson => lesson.id !== lessonId));
         setStreak(prev => ({
           ...prev,
@@ -406,7 +350,6 @@ const DashboardHome: React.FC = () => {
         return;
       }
       
-      // Mark lesson as completed
       const { error: lessonError } = await supabase
         .from('lessons')
         .update({ 
@@ -420,7 +363,6 @@ const DashboardHome: React.FC = () => {
         return;
       }
 
-      // Update or create daily progress
       const today = new Date().toISOString().split('T')[0];
       const { data: existingProgress } = await supabase
         .from('user_progress')
@@ -448,12 +390,8 @@ const DashboardHome: React.FC = () => {
           });
       }
 
-      // Update streak
-      await supabase.rpc('update_user_streak', { user_uuid: user?.id });
-
       console.log('Lesson completed successfully');
       
-      // Refresh data
       await initializeDashboard();
       setSelectedLesson(null);
     } catch (error) {
@@ -495,7 +433,6 @@ const DashboardHome: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-24">
-      {/* Header */}
       <div className="text-center pt-6 sm:pt-8 pb-4 sm:pb-6 px-4">
         <div className="flex items-center justify-center mb-2">
           <img 
@@ -508,7 +445,6 @@ const DashboardHome: React.FC = () => {
         <p className="text-sm sm:text-base text-gray-600">Welcome back! Ready for today's wellness journey?</p>
       </div>
 
-      {/* Streak Section */}
       <div className="mx-4 mb-6 sm:mb-8">
         <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
           <div className="flex items-center justify-between">
@@ -533,7 +469,6 @@ const DashboardHome: React.FC = () => {
         </div>
       </div>
 
-      {/* Subscription Limit Info */}
       {profile.subscription_type === 'explorer' && (
         <div className="mx-4 mb-4 sm:mb-6">
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 sm:p-4">
@@ -551,7 +486,6 @@ const DashboardHome: React.FC = () => {
         </div>
       )}
 
-      {/* Lessons Section */}
       <div className="mx-4 pb-4">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Your Wellness Lessons</h2>
         <div className="space-y-3 sm:space-y-4">
@@ -608,7 +542,6 @@ const DashboardHome: React.FC = () => {
         )}
       </div>
 
-      {/* Lesson Modal */}
       {selectedLesson && (
         <LessonModal
           lesson={selectedLesson}

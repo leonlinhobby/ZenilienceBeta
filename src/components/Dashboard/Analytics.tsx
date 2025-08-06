@@ -27,7 +27,6 @@ const Analytics: React.FC = () => {
 
   const fetchMetrics = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         setMetrics({
           stress_level: 2,
@@ -59,7 +58,6 @@ const Analytics: React.FC = () => {
 
   const fetchWeeklyData = async () => {
     try {
-      // Handle demo user
       if (user?.id === 'demo-user-id-12345678-1234-1234-1234-123456789012') {
         const demoWeeklyData = [
           { created_at: new Date(Date.now() - 6 * 86400000).toISOString(), mood_score: 8, stress_level: 3 },
@@ -136,13 +134,11 @@ const Analytics: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 pb-24">
-      {/* Header */}
       <div className="text-center pt-8 pb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">📊 Analytics</h1>
         <p className="text-gray-600">Track your health and wellness metrics</p>
       </div>
 
-      {/* Current Metrics */}
       <div className="mx-4 mb-8">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Current Values</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -191,7 +187,6 @@ const Analytics: React.FC = () => {
         </div>
       </div>
 
-      {/* Weekly Trend */}
       {weeklyData.length > 0 && (
         <div className="mx-4 mb-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">7-Day Trend</h2>
@@ -227,7 +222,6 @@ const Analytics: React.FC = () => {
         </div>
       )}
 
-      {/* No Data State */}
       {!metrics && (
         <div className="mx-4">
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 text-center">
